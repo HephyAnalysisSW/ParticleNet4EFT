@@ -42,6 +42,7 @@ inputs:
          - chh_etarel
          - chh_phirel
          - chh_pt
+         - chh_charge
    chh_mask:
       length: 50
       vars: 
@@ -74,6 +75,7 @@ inputs:
          - e_etarel
          - e_phirel
          - e_pt
+         - e_charge
    el_mask:
       length: 5
       vars:
@@ -90,6 +92,7 @@ inputs:
          - mu_etarel
          - mu_phirel
          - mu_pt
+         - mu_charge
    mu_mask:
       length: 5
       vars:
@@ -120,7 +123,7 @@ labels:
       # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_gen_mass) 
    type: custom
    value:
-        lin_ctWRe : target_ctWRe
+        quad_ctWRe : target_ctWRe_ctWRe
 
 observers:
    - genJet_pt
@@ -130,20 +133,20 @@ observers:
    - partonTop_pt
 
 weights:
-   ### [option 1] use precomputed weights stored in the input files
-   # use_precomputed_weights: true
-   # weight_branches: [weight, class_weight]
-   ### [option 2] compute weights on-the-fly using reweighting histograms
-   use_precomputed_weights: false
-   reweight_method: flat
-   reweight_vars:
-      genJet_pt: [300, 500, 800, 10000] #251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
-      genJet_eta: [-10., 10.]
-   reweight_classes: [
-      label_quad_0, label_quad_1, label_quad_2, label_quad_3
-      ]
-   class_weights: [
-      1, 1, 1, 1
-      ]
-   reweight_hists:
+   #### [option 1] use precomputed weights stored in the input files
+   ## use_precomputed_weights: true
+   ## weight_branches: [weight, class_weight]
+   #### [option 2] compute weights on-the-fly using reweighting histograms
+   #use_precomputed_weights: false
+   #reweight_method: flat
+   #reweight_vars:
+   #   genJet_pt: [300, 500, 800, 10000] #251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
+   #   genJet_eta: [-10., 10.]
+   #reweight_classes: [
+   #   label_quad_0, label_quad_1, label_quad_2, label_quad_3
+   #   ]
+   #class_weights: [
+   #   1, 1, 1, 1
+   #   ]
+   #reweight_hists:
 
