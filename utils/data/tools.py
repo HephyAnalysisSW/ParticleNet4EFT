@@ -29,6 +29,10 @@ def _stack(arrays, axis=1):
 
 
 def _pad(a, maxlen, value=0, dtype='float32'):
+    print('a:##############################', type(a))
+    print('a.ndim:', a.ndim)
+    print('a.shape:', a.shape, 'maxlen:', maxlen)
+    print(a) ###################################################
     if isinstance(a, np.ndarray) and a.ndim >= 2 and a.shape[1] == maxlen:
         return a
     elif isinstance(a, awkward.JaggedArray):
