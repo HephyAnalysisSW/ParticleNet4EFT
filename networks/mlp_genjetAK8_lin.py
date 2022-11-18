@@ -26,7 +26,7 @@ class MLP(nn.Module):
 def get_model(data_config, **kwargs):
     hidden_layers = (300,100,100)
     _, pf_length, pf_feature_dims = data_config.input_shapes['hl_features']
-    print(pf_length, pf_feature_dims)
+    # print(pf_length, pf_feature_dims)
     input_dims = pf_length * pf_feature_dims
     num_classes = len(data_config.label_value)
     model = MLP(input_dims, num_classes, hidden_layers=hidden_layers)
@@ -43,4 +43,5 @@ def get_model(data_config, **kwargs):
 
 
 def get_loss(data_config, **kwargs):
-    return torch.nn.CrossEntropyLoss()
+    # return torch.nn.CrossEntropyLoss()
+    return torch.nn.MSELoss()
