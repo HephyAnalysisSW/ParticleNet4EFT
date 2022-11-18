@@ -8,12 +8,33 @@
 
 #python train.py --predict --data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/tschRefPointNoWidthRW_1*.root' --data-config data/genak8_points_pf_full_sumPt.yaml --network-config networks/particle_net_genjetAK8.py --model-prefix v2_sumPt --predict-output  predict_output_train.root --regression-mode --gpus "0"
 
+
+# python train.py \
+# --predict \
+# --data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/tschRefPointNoWidthRW_2.root' \
+# --data-config data/genak8_points_pf_full_theta.yaml \
+# --network-config networks/particle_net_genjetAK8.py \
+# --model-prefix models/pnet_test/pnet_test_epoch-0_state.pt \
+# --predict-output predict_output_pnet_test.root \
+# --regression-mode \
+# --gpus 0 \
+# --export-onnx models/pnet_test/model.onnx
+
+
+
+PATH_TO_DATA='/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/'
+
+
 python train.py \
---predict
---data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/tschRefPointNoWidthRW_1.root' \
---data-config 'data/genak8_hl_features_lin_dnn.yaml' \
+--predict \
+--data-test ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
+--data-config 'data/genak8_hl_features_lin.yaml' \
 --network-config 'networks/mlp_genjetAK8_lin.py'  \
---model-prefix mlp_hl_lin_v1 \
---predict-output  predict_output_mlp_train.root
+--model-prefix models/mlp_hl_lin_v1/20221116-162237_mlp_genjetAK8_lin_ranger_lr0.0005_batch1000_best_epoch_state.pt \
+--predict-output predict_output_mlp_lin_train.root \
 --regression-mode \
---gpus 0
+--gpus "" 
+
+
+# \
+# --export-onnx models/mlp_hl_lin_test1/model.onnx
