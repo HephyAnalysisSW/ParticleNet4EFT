@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from utils.nn.model.ParticleNet import ParticleNetTagger
 
 # create a MLP class
 class MLP(nn.Module):
