@@ -310,6 +310,12 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, epoch,
             num_batches += 1
             count += num_examples
             total_loss += loss
+            print ("pred")
+            print (preds)
+            print ("label")
+            print (label)
+
+            #Here we must implement the loss function (Robert Schoefbeck 5.12.2022)
             e = preds - label
             abs_err = e.abs().sum().item()
             sum_abs_err += abs_err
