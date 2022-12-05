@@ -65,12 +65,23 @@ class TestWeightLoss(torch.nn.L1Loss):
         super(TestWeightLoss, self).__init__(None, None, reduction)
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        print ("input")
-        print (input)
-        print ("target")
-        print (target)
-        x = input - target
-        loss = x + torch.nn.functional.softplus(-2. * x) - math.log(2)
+        #print ("input")
+        #print (input)
+        #print ("target")
+        #print (target)
+        # fit the linear term only for now (the network has just one output anyways)
+        weight      = target[:,0] # this is the weight
+        target_lin  = target[:,1] # this is the linear term
+
+        loss = weight*(target_lin-input)**2
+
+        #print ("weight") 
+        #print (weight) 
+        #print ("target_lin") 
+        #print (target_lin) 
+        #print ("loss") 
+        #print (loss) 
+
         if self.reduction == 'none':
             return loss
         elif self.reduction == 'mean':
