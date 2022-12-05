@@ -31,6 +31,11 @@ def _stack(arrays, axis=1):
 def _pad(a, maxlen, value=0, dtype='float32'):
     if isinstance(a, np.ndarray) and a.ndim >= 2 and a.shape[1] == maxlen:
         return a
+    # i copied this modification from andreas' fork 
+    elif isinstance(a, np.ndarray) and a.ndim == 1:
+        x = (np.ones((len(a), maxlen)) * value).astype(dtype)
+        x[:, 0] = a
+        return x
     elif isinstance(a, awkward.JaggedArray):
         return a.pad(maxlen, clip=True).fillna(value).regular().astype(dtype)
     else:

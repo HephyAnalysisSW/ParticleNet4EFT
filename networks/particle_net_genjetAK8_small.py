@@ -5,11 +5,11 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (64, 64, 64)),
-        (16, (128, 128, 128)),
-        (16, (256, 256, 256)),
+        (4, (16, 16, 16)),
+        (4, (32, 32, 32)),
+        (4, (64, 64, 64)),
         ]
-    fc_params = [(256, 0.1)]
+    fc_params = [(64, 0.1)]
     use_fusion = True
 
     chh_features_dims = len(data_config.input_dicts['chh_features'])
@@ -58,27 +58,7 @@ class LogCoshLoss(torch.nn.L1Loss):
         elif self.reduction == 'sum':
             return loss.sum()
 
-class TestWeightLoss(torch.nn.L1Loss):
-    __constants__ = ['reduction']
-
-    def __init__(self, reduction: str = 'mean') -> None:
-        super(TestWeightLoss, self).__init__(None, None, reduction)
-
-    def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        print ("input")
-        print (input)
-        print ("target")
-        print (target)
-        x = input - target
-        loss = x + torch.nn.functional.softplus(-2. * x) - math.log(2)
-        if self.reduction == 'none':
-            return loss
-        elif self.reduction == 'mean':
-            return loss.mean()
-        elif self.reduction == 'sum':
-            return loss.sum()
-
 def get_loss(data_config, **kwargs):
-    return TestWeightLoss()
-    #return torch.nn.MSELoss() 
+    #return LogCoshLoss()
+    return torch.nn.MSELoss() 
 
