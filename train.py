@@ -660,7 +660,7 @@ def main(args):
         _logger.info('Running in regression mode')
         if args.weighting:
             from utils.nn.tools import train_weighted_regression as train
-            from utils.nn.tools import evaluate_regression as evaluate
+            from utils.nn.tools import evaluate_weighted_regression as evaluate
         else:
             from utils.nn.tools import train_regression as train
             from utils.nn.tools import evaluate_regression as evaluate
