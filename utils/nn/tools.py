@@ -318,7 +318,7 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             e = label[:,0]*(preds - label[:,1])
             abs_err = e.abs().sum().item()
             sum_abs_err += abs_err
-            sqr_err = e.square().sum().item()
+            sqr_err = (label[:,0]*(preds - label[:,1])**2).sum().item()
             sum_sqr_err += sqr_err
 
             tq.set_postfix({
@@ -494,7 +494,7 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
                 e = label[:,0]*(preds - label[:,1])
                 abs_err = e.abs().sum().item()
                 sum_abs_err += abs_err
-                sqr_err = e.sum().item()
+                sqr_err = (label[:,0]*(preds - label[:,1])**2).sum().item()
                 sum_sqr_err += sqr_err
 
                 tq.set_postfix({
