@@ -1,11 +1,11 @@
 selection:
    ### use `&`, `|`, `~` for logical operations on numpy arrays
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0) 
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxQ1Q2b)<0.6) & (genJet_SDsubjet1_mass>=0) 
 
 test_time_selection:
    ### selection to apply at test time (i.e., when running w/ --predict)
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxQ1Q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
 
 
 preprocess:
