@@ -69,9 +69,18 @@ class TestWeightLoss(torch.nn.L1Loss):
         #print (input)
         #print ("target")
         #print (target)
+        # fit the linear term only for now (the network has just one output anyways)
+        weight      = target[:,0] # this is the weight
+        target_lin  = target[:,1] # this is the linear term
 
-        x = input - target
-        loss = x + torch.nn.functional.softplus(-2. * x) - math.log(2)
+        loss = weight*(target_lin-input)**2
+
+        #print ("weight") 
+        #print (weight) 
+        #print ("target_lin") 
+        #print (target_lin) 
+        #print ("loss") 
+        #print (loss) 
 
         if self.reduction == 'none':
             return loss

@@ -20,6 +20,8 @@ from utils.dataset import SimpleIterDataset
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
                     help='run in regression mode if this flag is set; otherwise run in classification mode')
+parser.add_argument('--weighting', action='store_true', default=False,
+                    help='Use weights?')
 parser.add_argument('-c', '--data-config', type=str, default='data/ak15_points_pf_sv_v0.yaml',
                     help='data config YAML file')
 parser.add_argument('-i', '--data-train', nargs='*', default=[],
@@ -656,8 +658,12 @@ def main(args):
     # classification/regression mode
     if args.regression_mode:
         _logger.info('Running in regression mode')
-        from utils.nn.tools import train_regression as train
-        from utils.nn.tools import evaluate_regression as evaluate
+        if args.weighting:
+            from utils.nn.tools import train_weighted_regression as train
+            from utils.nn.tools import evaluate_weighted_regression as evaluate
+        else:
+            from utils.nn.tools import train_regression as train
+            from utils.nn.tools import evaluate_regression as evaluate
     else:
         _logger.info('Running in classification mode')
         from utils.nn.tools import train_classification as train
