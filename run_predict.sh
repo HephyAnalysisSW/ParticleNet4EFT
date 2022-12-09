@@ -6,9 +6,6 @@
 
 #python train.py --predict --data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v1/tschRefPointNoWidthRW/tschRefPointNoWidthRW_2*.root' --data-config data/genak8_points_pf_full_sumPt.yaml --network-config networks/particle_net_genjetAK8.py --model-prefix batchjob_best_epoch_state.pt --predict-output  predict_output.root --regression-mode --gpus ""
 
-<<<<<<< HEAD
-python train.py --predict --data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v1/tschRefPointNoWidthRW/tschRefPointNoWidthRW_2*.root' --data-config data/genak8_points_pf_full_lin.yaml --network-config networks/particle_net_genjetAK8.py --model-prefix v3_lin --predict-output  predict_output.root --regression-mode --gpus ""
-=======
 #python train.py --predict --data-test '/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/tschRefPointNoWidthRW_1*.root' --data-config data/genak8_points_pf_full_sumPt.yaml --network-config networks/particle_net_genjetAK8.py --model-prefix v2_sumPt --predict-output  predict_output_train.root --regression-mode --gpus "0"
 
 
@@ -54,4 +51,3 @@ ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
 
 # \
 # --export-onnx models/mlp_hl_lin_test1/model.onnx
->>>>>>> 83f11c1e3ccc7787302a070b5ac6d0e109d990f1
