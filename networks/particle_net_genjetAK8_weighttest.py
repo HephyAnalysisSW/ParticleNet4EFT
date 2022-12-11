@@ -76,9 +76,9 @@ class LossLikelihoodFree(torch.nn.L1Loss):
         target_lin  = target[:,1] # this is the linear term
         target_quad = target[:,2] # this is the quadratic term
 
-        loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + self.base_points[0]*(target_quad-input[:,1]) )**2
+        loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + .5*self.base_points[0]**2*(target_quad-input[:,1]) )**2
         for theta_base in self.base_points[1:]: #two base-points: 1,2
-            loss = weight*( theta_base*(target_lin-input[:,0]) + theta_base*(target_quad-input[:,1]) )**2
+            loss = weight*( theta_base*(target_lin-input[:,0]) + .5*theta_base**2*(target_quad-input[:,1]) )**2
 
         #print ("weight") 
         #print (weight) 
