@@ -142,3 +142,6 @@ predict_output/
 
 #models directory
 models/
+
+# tensorboard runs directory
+runs/
