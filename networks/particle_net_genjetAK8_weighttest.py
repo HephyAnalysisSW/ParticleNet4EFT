@@ -17,17 +17,17 @@ def get_model(data_config, **kwargs):
     el_features_dims = len(data_config.input_dicts['el_features'])
     mu_features_dims = len(data_config.input_dicts['mu_features'])
     ph_features_dims = len(data_config.input_dicts['ph_features'])
-    num_classes = len(data_config.label_value)
+    num_classes = 2 #len(data_config.label_value)
     model = ParticleNetTagger(chh_features_dims, neh_features_dims, el_features_dims, mu_features_dims, ph_features_dims, num_classes,
                               conv_params, fc_params,
                               use_fusion=use_fusion,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
                               use_counts=kwargs.get('use_counts', True),
                               chh_input_dropout=kwargs.get('chh_input_dropout', None),
-			      neh_input_dropout=kwargs.get('neh_input_dropout', None),
+                              neh_input_dropout=kwargs.get('neh_input_dropout', None),
                               el_input_dropout=kwargs.get('el_input_dropout', None),
-			      mu_input_dropout=kwargs.get('mu_input_dropout', None),
-			      ph_input_dropout=kwargs.get('ph_input_dropout', None),
+                              mu_input_dropout=kwargs.get('mu_input_dropout', None),
+                              ph_input_dropout=kwargs.get('ph_input_dropout', None),
                               for_inference=kwargs.get('for_inference', False)
                               )
 
@@ -58,11 +58,13 @@ class LogCoshLoss(torch.nn.L1Loss):
         elif self.reduction == 'sum':
             return loss.sum()
 
-class TestWeightLoss(torch.nn.L1Loss):
+class LossLikelihoodFree(torch.nn.L1Loss):
     __constants__ = ['reduction']
 
     def __init__(self, reduction: str = 'mean') -> None:
-        super(TestWeightLoss, self).__init__(None, None, reduction)
+        super(LossLikelihoodFree, self).__init__(None, None, reduction)
+
+        self.base_points = [1,2] # Could add to data_config, but the Loss function is not called with the data_config, so hard-code for now
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         #print ("input")
@@ -72,8 +74,11 @@ class TestWeightLoss(torch.nn.L1Loss):
         # fit the linear term only for now (the network has just one output anyways)
         weight      = target[:,0] # this is the weight
         target_lin  = target[:,1] # this is the linear term
+        target_quad = target[:,2] # this is the quadratic term
 
-        loss = weight*(target_lin-input)**2
+        loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + .5*self.base_points[0]**2*(target_quad-input[:,1]) )**2
+        for theta_base in self.base_points[1:]: #two base-points: 1,2
+            loss = weight*( theta_base*(target_lin-input[:,0]) + .5*theta_base**2*(target_quad-input[:,1]) )**2
 
         #print ("weight") 
         #print (weight) 
@@ -90,6 +95,6 @@ class TestWeightLoss(torch.nn.L1Loss):
             return loss.sum()
 
 def get_loss(data_config, **kwargs):
-    return TestWeightLoss()
+    return LossLikelihoodFree()
     #return torch.nn.MSELoss() 
 

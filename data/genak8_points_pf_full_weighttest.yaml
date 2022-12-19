@@ -134,7 +134,7 @@ observers:
    - genJet_nConstituents
    - partonTop_pt
 
-weights:
+#weights:
    #### [option 1] use precomputed weights stored in the input files
    ## use_precomputed_weights: true
    ## weight_branches: [weight, class_weight]
