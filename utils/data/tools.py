@@ -32,9 +32,12 @@ def _pad(a, maxlen, value=0, dtype='float32'):
     if isinstance(a, np.ndarray) and a.ndim >= 2 and a.shape[1] == maxlen:
         return a
     # i copied this modification from andreas' fork 
+    # modified to set nan's to value
     elif isinstance(a, np.ndarray) and a.ndim == 1:
-        x = (np.ones((len(a), maxlen)) * value).astype(dtype)
-        x[:, 0] = a
+        # x = (np.ones((len(a), maxlen)) * value).astype(dtype)
+        # x[:, 0] = a
+        x = np.full((len(a), maxlen), value, dtype=dtype)
+        x[:, 0] = np.nan_to_num(a, nan=value)
         return x
     elif isinstance(a, awkward.JaggedArray):
         return a.pad(maxlen, clip=True).fillna(value).regular().astype(dtype)
