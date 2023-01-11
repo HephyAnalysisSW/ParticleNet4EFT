@@ -10,11 +10,11 @@ test_time_selection:
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   chh_mask: awkward.JaggedArray.ones_like(chh_etarel)
-   neh_mask: awkward.JaggedArray.ones_like(neh_etarel)
-   el_mask: awkward.JaggedArray.ones_like(e_etarel)
-   mu_mask: awkward.JaggedArray.ones_like(mu_etarel)
-   ph_mask: awkward.JaggedArray.ones_like(ph_etarel)
+   gen_chh_mask: awkward.JaggedArray.ones_like(gen_chh_etarel)
+   gen_neh_mask: awkward.JaggedArray.ones_like(gen_neh_etarel)
+   gen_el_mask: awkward.JaggedArray.ones_like(gen_e_etarel)
+   gen_mu_mask: awkward.JaggedArray.ones_like(gen_mu_etarel)
+   gen_ph_mask: awkward.JaggedArray.ones_like(gen_ph_etarel)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -27,8 +27,8 @@ inputs:
    chh_points:
       length: 50
       vars: 
-         - chh_etarel
-         - chh_phirel
+         - gen_chh_etarel
+         - gen_chh_phirel
    chh_features:
       length: 50
       vars: 
@@ -39,80 +39,80 @@ inputs:
       ###              clip_min(optional, default=-5), 
       ###              clip_max(optional, default=5), 
       ###              pad_value(optional, default=0)]
-         - chh_etarel
-         - chh_phirel
-         - chh_pt
-         - chh_charge
+         - gen_chh_etarel
+         - gen_chh_phirel
+         - gen_chh_pt
+         - gen_chh_charge
    chh_mask:
       length: 50
       vars: 
-         - chh_mask
+         - gen_chh_mask
 
    neh_points:
       length: 20
       vars:
-         - neh_etarel
-         - neh_phirel
+         - gen_neh_etarel
+         - gen_neh_phirel
    neh_features:
       length: 20
       vars:
-         - neh_etarel
-         - neh_phirel
-         - neh_pt
+         - gen_neh_etarel
+         - gen_neh_phirel
+         - gen_neh_pt
    neh_mask:
       length: 20
       vars:
-         - neh_mask
+         - gen_neh_mask
 
    el_points:
       length: 5
       vars:
-         - e_etarel 
-         - e_phirel
+         - gen_e_etarel 
+         - gen_e_phirel
    el_features:
       length: 5
       vars:
-         - e_etarel
-         - e_phirel
-         - e_pt
-         - e_charge
+         - gen_e_etarel
+         - gen_e_phirel
+         - gen_e_pt
+         - gen_e_charge
    el_mask:
       length: 5
       vars:
-         - el_mask
+         - gen_el_mask
  
    mu_points:
       length: 5
       vars:
-         - mu_etarel
-         - mu_phirel
+         - gen_mu_etarel
+         - gen_mu_phirel
    mu_features:
       length: 5
       vars:
-         - mu_etarel
-         - mu_phirel
-         - mu_pt
-         - mu_charge
+         - gen_mu_etarel
+         - gen_mu_phirel
+         - gen_mu_pt
+         - gen_mu_charge
    mu_mask:
       length: 5
       vars:
-         - mu_mask
+         - gen_mu_mask
 
    ph_points:
       length: 50
       vars:
-         - ph_etarel
-         - ph_phirel
+         - gen_ph_etarel
+         - gen_ph_phirel
    ph_features:
       length: 50
       vars:
-         - ph_etarel
-         - ph_phirel
-         - ph_pt
+         - gen_ph_etarel
+         - gen_ph_phirel
+         - gen_ph_pt
    ph_mask:
       length: 50
       vars:
-         - ph_mask
+         - gen_ph_mask
 
 labels:
    ### type can be `simple`, `custom`
@@ -132,7 +132,7 @@ observers:
    - genJet_eta
    - genJet_phi
    - genJet_nConstituents
-   - partonTop_pt
+   - parton_top_pt
 
 #weights:
    #### [option 1] use precomputed weights stored in the input files
