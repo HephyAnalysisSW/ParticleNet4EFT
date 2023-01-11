@@ -32,29 +32,54 @@
 
 ###### train DNN on hl_features, if not run with 'in-memory' training seems to pause every few seconds...
 #PATH_TO_DATA='/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/'
-PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
-python train.py \
---data-train \
-${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
-${PATH_TO_DATA}'tschRefPointNoWidthRW_[1-7]?.root' \
---data-test \
-${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
---data-config 'data/genak8_hl_features_lin.yaml' \
---network-config 'networks/mlp_genjetAK8_lin.py'  \
---batch-size 1000  \
---num-workers 3 \
---start-lr 5e-4 \
---num-epochs 800 \
---optimizer ranger \
---lr-scheduler none \
---regression-mode \
---gpus 0 \
---model-prefix models/mlp_hl_lin_v2/{auto} \
---in-memory \
---steps-per-epoch 1000
-
+# PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
+# python train.py \
+# --data-train \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_[1-7]?.root' \
+# --data-test \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
+# --data-config 'data/genak8_hl_features_lin.yaml' \
+# --network-config 'networks/mlp_genjetAK8_lin.py'  \
+# --batch-size 1000  \
+# --num-workers 3 \
+# --start-lr 5e-4 \
+# --num-epochs 400 \
+# --optimizer ranger \.
+# --lr-scheduler none \
+# --regression-mode \
+# --gpus 0 \
+# --model-prefix models/mlp_hl_lin_test_4/{auto} \
+# --in-memory \
+# --steps-per-epoch 1000
 
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_2*.root' \
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_3*.root' \
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_4*.root' \
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_5*.root' \
+
+
+PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
+python train.py \
+--data-train \
+${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
+--data-test \
+${PATH_TO_DATA}'tschRefPointNoWidthRW_1.root' \
+--data-config 'data/genak8_hl_features_lin.yaml' \
+--network-config 'networks/mlp_genjetAK8_lin.py'  \
+--batch-size 1000  \
+--num-workers 1 \
+--start-lr 5e-4 \
+--num-epochs 1 \
+--optimizer ranger \
+--lr-scheduler none \
+--regression-mode \
+--gpus 0 \
+--model-prefix models/mlp_hl_lin_test_10/{auto} \
+--fetch-by-files \
+--fetch-step 1 \
+
+
+# --in-memory \
+# --steps-per-epoch 1
+# --tensorboard tensorboard \
