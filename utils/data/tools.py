@@ -31,7 +31,7 @@ def _stack(arrays, axis=1):
 def _pad(a, maxlen, value=0, dtype='float32'):
     if isinstance(a, np.ndarray) and a.ndim >= 2 and a.shape[1] == maxlen:
         return a
-    # i copied this modification from andreas' fork 
+    # Oskar: copied this modification from andreas' fork 
     # modified to set nan's to value
     elif isinstance(a, np.ndarray) and a.ndim == 1:
         # x = (np.ones((len(a), maxlen)) * value).astype(dtype)

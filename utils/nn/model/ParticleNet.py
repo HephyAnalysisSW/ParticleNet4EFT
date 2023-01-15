@@ -124,6 +124,7 @@ class ParticleNet(nn.Module):
 
     def __init__(self,
                  input_dims,
+                 global_dims,
                  num_classes,
                  conv_params=[(7, (32, 32, 32)), (7, (64, 64, 64))],
                  fc_params=[(128, 0.1)],
@@ -167,6 +168,10 @@ class ParticleNet(nn.Module):
                                          nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
             else:
                 fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+
+        fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]+global_dims), nn.ReLU(), nn.Dropout(fc_params[-1][1]))) #add additional layer for adding global features
+        fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]), nn.ReLU(), nn.Dropout(fc_params[-1][1])))
+
         if self.for_segmentation:
             fcs.append(nn.Conv1d(fc_params[-1][0], num_classes, kernel_size=1))
         else:
@@ -175,7 +180,7 @@ class ParticleNet(nn.Module):
 
         self.for_inference = for_inference
 
-    def forward(self, points, features, mask=None):
+    def forward(self, points, features, global_features, mask=None):
 #         print('points:\n', points)
 #         print('features:\n', features)
         if mask is None:
@@ -210,7 +215,15 @@ class ParticleNet(nn.Module):
             else:
                 x = fts.mean(dim=-1)
 
-        output = self.fc(x)
+        #output = self.fc(x)
+        for idx, layer in enumerate(self.fc):
+            if idx == 1:
+                x = layer(torch.cat((x, global_features.sum(dim=-1)), dim=1)) #add lepton features
+            else:            
+                x = layer(x)
+        output = x
+
+
         if self.for_inference:
             output = torch.softmax(output, dim=1)
         # print('output:\n', output)
@@ -236,10 +249,11 @@ class ParticleNetTagger(nn.Module):
 
     def __init__(self,
                  chh_features_dims,
-		 neh_features_dims,
+                 neh_features_dims,
                  el_features_dims,
                  mu_features_dims,
                  ph_features_dims,
+                 global_features_dims,
                  num_classes,
                  conv_params=[(7, (32, 32, 32)), (7, (64, 64, 64))],
                  fc_params=[(128, 0.1)],
@@ -247,10 +261,11 @@ class ParticleNetTagger(nn.Module):
                  use_fts_bn=True,
                  use_counts=True,
                  chh_input_dropout=None,
-		 neh_input_dropout=None,
+                 neh_input_dropout=None,
                  el_input_dropout=None,
                  mu_input_dropout=None,
                  ph_input_dropout=None,
+                 global_input_dropout=None,
                  for_inference=False,
                  **kwargs):
         super(ParticleNetTagger, self).__init__(**kwargs)
@@ -259,12 +274,15 @@ class ParticleNetTagger(nn.Module):
         self.el_input_dropout = nn.Dropout(el_input_dropout) if el_input_dropout else None
         self.mu_input_dropout = nn.Dropout(mu_input_dropout) if mu_input_dropout else None
         self.ph_input_dropout = nn.Dropout(ph_input_dropout) if ph_input_dropout else None
+        self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
         self.chh_conv = FeatureConv(chh_features_dims, 32)
         self.neh_conv = FeatureConv(neh_features_dims, 32)
         self.el_conv = FeatureConv(el_features_dims, 32)
         self.mu_conv = FeatureConv(mu_features_dims, 32)
         self.ph_conv = FeatureConv(ph_features_dims, 32)
+        self.global_conv = FeatureConv(global_features_dims, 64) #FIXME should be removed!
         self.pn = ParticleNet(input_dims=32,
+                              global_dims=64,
                               num_classes=num_classes,
                               conv_params=conv_params,
                               fc_params=fc_params,
@@ -273,7 +291,7 @@ class ParticleNetTagger(nn.Module):
                               use_counts=use_counts,
                               for_inference=for_inference)
 
-    def forward(self, chh_points, chh_features, chh_mask, neh_points, neh_features, neh_mask, el_points, el_features, el_mask, mu_points, mu_features, mu_mask, ph_points, ph_features, ph_mask):
+    def forward(self, global_features, chh_points, chh_features, chh_mask, neh_points, neh_features, neh_mask, el_points, el_features, el_mask, mu_points, mu_features, mu_mask, ph_points, ph_features, ph_mask):
         if self.chh_input_dropout:
             chh_mask = (self.chh_input_dropout(chh_mask) != 0).float()
             chh_points *= chh_mask
@@ -297,5 +315,6 @@ class ParticleNetTagger(nn.Module):
 
         points = torch.cat((chh_points, neh_points, el_points, mu_points, ph_points), dim=2)
         features = torch.cat((self.chh_conv(chh_features * chh_mask) * chh_mask, self.neh_conv(neh_features * neh_mask) * neh_mask, self.el_conv(el_features * el_mask) * el_mask, self.mu_conv(mu_features * mu_mask) * mu_mask, self.ph_conv(ph_features * ph_mask) * ph_mask), dim=2)
+        global_features = self.global_conv(global_features)
         mask = torch.cat((chh_mask, neh_mask, el_mask, mu_mask, ph_mask), dim=2)
-        return self.pn(points, features, mask)
+        return self.pn(points, features, global_features, mask)
