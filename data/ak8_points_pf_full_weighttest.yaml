@@ -1,20 +1,17 @@
 selection:
    ### use `&`, `|`, `~` for logical operations on numpy arrays
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0) 
-
+   #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0) 
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxq1q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
 test_time_selection:
    ### selection to apply at test time (i.e., when running w/ --predict)
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxq1q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
 
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   gen_chh_mask: awkward.JaggedArray.ones_like(gen_chh_etarel)
-   gen_neh_mask: awkward.JaggedArray.ones_like(gen_neh_etarel)
-   gen_el_mask: awkward.JaggedArray.ones_like(gen_e_etarel)
-   gen_mu_mask: awkward.JaggedArray.ones_like(gen_mu_etarel)
-   gen_ph_mask: awkward.JaggedArray.ones_like(gen_ph_etarel)
+   eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -24,13 +21,20 @@ preprocess:
   data_fraction: 
 
 inputs:
-   chh_points:
-      length: 50
+   global_features:
+      length: 1
+      vars:
+         - delphesJet_nConstituents
+         - delphesJet_pt
+         - delphesJet_eta
+
+   constituents_points:
+      length: 200
       vars: 
-         - gen_chh_etarel
-         - gen_chh_phirel
-   chh_features:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+   eflow_features:
+      length: 200
       vars: 
       ### [format 1]: var_name (no transformation)
       ### [format 2]: [var_name, 
@@ -39,80 +43,15 @@ inputs:
       ###              clip_min(optional, default=-5), 
       ###              clip_max(optional, default=5), 
       ###              pad_value(optional, default=0)]
-         - gen_chh_etarel
-         - gen_chh_phirel
-         - gen_chh_pt
-         - gen_chh_charge
-   chh_mask:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+         - eflow_pt
+         - eflow_charge
+         - eflow_type
+   eflow_mask:
+      length: 200
       vars: 
-         - gen_chh_mask
-
-   neh_points:
-      length: 20
-      vars:
-         - gen_neh_etarel
-         - gen_neh_phirel
-   neh_features:
-      length: 20
-      vars:
-         - gen_neh_etarel
-         - gen_neh_phirel
-         - gen_neh_pt
-   neh_mask:
-      length: 20
-      vars:
-         - gen_neh_mask
-
-   el_points:
-      length: 5
-      vars:
-         - gen_e_etarel 
-         - gen_e_phirel
-   el_features:
-      length: 5
-      vars:
-         - gen_e_etarel
-         - gen_e_phirel
-         - gen_e_pt
-         - gen_e_charge
-   el_mask:
-      length: 5
-      vars:
-         - gen_el_mask
- 
-   mu_points:
-      length: 5
-      vars:
-         - gen_mu_etarel
-         - gen_mu_phirel
-   mu_features:
-      length: 5
-      vars:
-         - gen_mu_etarel
-         - gen_mu_phirel
-         - gen_mu_pt
-         - gen_mu_charge
-   mu_mask:
-      length: 5
-      vars:
-         - gen_mu_mask
-
-   ph_points:
-      length: 50
-      vars:
-         - gen_ph_etarel
-         - gen_ph_phirel
-   ph_features:
-      length: 50
-      vars:
-         - gen_ph_etarel
-         - gen_ph_phirel
-         - gen_ph_pt
-   ph_mask:
-      length: 50
-      vars:
-         - gen_ph_mask
+         - eflow_const_mask
 
 labels:
    ### type can be `simple`, `custom`
@@ -120,12 +59,10 @@ labels:
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
    # value: 
-      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_gen_mass) 
+      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        #weight_coeff : ctWRe_coeff
-        #lin_ctWRe : target_ctWRe
-        lin_ctWRe : ctWRe_coeff
+        ctWRe_coeffs : ctWRe_coeff
 
 observers:
    - genJet_pt

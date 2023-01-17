@@ -128,6 +128,7 @@ class DataConfig(object):
         self.z_variables = self.observer_names if len(self.observer_names) > 0 else self.monitor_variables
 
         # remove self mapping from var_funcs
+        print (self.var_funcs)
         for k, v in self.var_funcs.items():
             if k == v:
                 del self.var_funcs[k]
