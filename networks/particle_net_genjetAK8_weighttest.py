@@ -12,24 +12,17 @@ def get_model(data_config, **kwargs):
     fc_params = [(256, 0.1)]
     use_fusion = True
 
-    chh_features_dims    = len(data_config.input_dicts['chh_features'])
-    neh_features_dims    = len(data_config.input_dicts['neh_features'])
-    el_features_dims     = len(data_config.input_dicts['el_features'])
-    mu_features_dims     = len(data_config.input_dicts['mu_features'])
-    ph_features_dims     = len(data_config.input_dicts['ph_features'])
+    eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
     # training linear and quadratic together:
     num_classes = 2 #len(data_config.label_value)
-    model = ParticleNetTagger(chh_features_dims, neh_features_dims, el_features_dims, mu_features_dims, ph_features_dims, global_features_dims, num_classes,
+    model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
                               conv_params, fc_params,
                               use_fusion=use_fusion,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
                               use_counts=kwargs.get('use_counts', True),
-                              chh_input_dropout=kwargs.get('chh_input_dropout', None),
-                              neh_input_dropout=kwargs.get('neh_input_dropout', None),
-                              el_input_dropout=kwargs.get('el_input_dropout', None),
-                              mu_input_dropout=kwargs.get('mu_input_dropout', None),
-                              ph_input_dropout=kwargs.get('ph_input_dropout', None),
+                              constituents_input_dropout=kwargs.get('constituents_input_dropout', None),
+                              global_input_dropout=kwargs.get('global_input_dropout', None),
                               for_inference=kwargs.get('for_inference', False)
                               )
 

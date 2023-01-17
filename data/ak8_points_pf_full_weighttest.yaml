@@ -11,11 +11,7 @@ test_time_selection:
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   eflow_chh_mask: awkward.JaggedArray.ones_like(eflow_chh_etarel)
-   eflow_neh_mask: awkward.JaggedArray.ones_like(eflow_neh_etarel)
-   eflow_el_mask:  awkward.JaggedArray.ones_like(eflow_e_etarel)
-   eflow_mu_mask:  awkward.JaggedArray.ones_like(eflow_mu_etarel)
-   eflow_ph_mask:  awkward.JaggedArray.ones_like(eflow_ph_etarel)
+   eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -32,13 +28,13 @@ inputs:
          - delphesJet_pt
          - delphesJet_eta
 
-   chh_points:
-      length: 50
+   constituents_points:
+      length: 200
       vars: 
-         - eflow_chh_etarel
-         - eflow_chh_phirel
-   chh_features:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+   eflow_features:
+      length: 200
       vars: 
       ### [format 1]: var_name (no transformation)
       ### [format 2]: [var_name, 
@@ -47,80 +43,15 @@ inputs:
       ###              clip_min(optional, default=-5), 
       ###              clip_max(optional, default=5), 
       ###              pad_value(optional, default=0)]
-         - eflow_chh_etarel
-         - eflow_chh_phirel
-         - eflow_chh_pt
-         - eflow_chh_charge
-   chh_mask:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+         - eflow_pt
+         - eflow_charge
+         - eflow_type
+   eflow_mask:
+      length: 200
       vars: 
-         - eflow_chh_mask
-
-   neh_points:
-      length: 20
-      vars:
-         - eflow_neh_etarel
-         - eflow_neh_phirel
-   neh_features:
-      length: 20
-      vars:
-         - eflow_neh_etarel
-         - eflow_neh_phirel
-         - eflow_neh_pt
-   neh_mask:
-      length: 20
-      vars:
-         - eflow_neh_mask
-
-   el_points:
-      length: 5
-      vars:
-         - eflow_e_etarel 
-         - eflow_e_phirel
-   el_features:
-      length: 5
-      vars:
-         - eflow_e_etarel
-         - eflow_e_phirel
-         - eflow_e_pt
-         - eflow_e_charge
-   el_mask:
-      length: 5
-      vars:
-         - eflow_el_mask
- 
-   mu_points:
-      length: 5
-      vars:
-         - eflow_mu_etarel
-         - eflow_mu_phirel
-   mu_features:
-      length: 5
-      vars:
-         - eflow_mu_etarel
-         - eflow_mu_phirel
-         - eflow_mu_pt
-         - eflow_mu_charge
-   mu_mask:
-      length: 5
-      vars:
-         - eflow_mu_mask
-
-   ph_points:
-      length: 50
-      vars:
-         - eflow_ph_etarel
-         - eflow_ph_phirel
-   ph_features:
-      length: 50
-      vars:
-         - eflow_ph_etarel
-         - eflow_ph_phirel
-         - eflow_ph_pt
-   ph_mask:
-      length: 50
-      vars:
-         - eflow_ph_mask
+         - eflow_const_mask
 
 labels:
    ### type can be `simple`, `custom`
