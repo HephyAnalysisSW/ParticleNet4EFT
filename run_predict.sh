@@ -21,7 +21,13 @@
 # --export-onnx models/pnet_test/model.onnx
 
 
-PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
+# === gen particles ===
+# PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
+# DATA_CONFIG='data/genak8_hl_features_lin.yaml'
+
+# === delphes detector sim ===
+PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v5/tschRefPointNoWidthRW/'
+DATA_CONFIG='data/delphes_hl_features_lin.yaml'
 
 
 # PATH_TO_DATA='/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/'
@@ -38,20 +44,20 @@ PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tsch
 
 
 
-for epoch in {0..5..1}
-do
+ for epoch in 0 1 2 5 10 20 50 100 200 399
+ do
 
 python train.py \
 --predict \
 --data-test ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
---data-config 'data/genak8_hl_features_lin.yaml' \
+--data-config ${DATA_CONFIG} \
 --network-config 'networks/mlp_genjetAK8_lin.py'  \
---model-prefix models/mlp_hl_lin_test_9_default/20230110-112636_mlp_genjetAK8_lin_ranger_lr0.0005_batch1000_epoch-${epoch}_state.pt \
+--model-prefix models/mlp_hl_lin_delphes_test_1/mlp_epoch-${epoch}_state.pt \
 --predict-output prediction_at_epoch_${epoch}.root \
 --regression-mode \
 --gpus 0 
 
-done
+ done
 
 
 # python train.py \

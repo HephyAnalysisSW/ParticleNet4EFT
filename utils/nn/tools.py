@@ -92,6 +92,11 @@ def train_classification(model, loss_func, opt, scheduler, train_loader, dev, ep
                 if tb_helper.custom_fn:
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
+                # tensorboard network visualization
+                if epoch==0 and num_batches==1:
+                    print('\n', f'trying to add network graph epoch: {epoch}, batch: {num_batches}')
+                    tb_helper.writer.add_graph(model, inputs)
+                    print('WORKED')
 
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
                 break
@@ -335,6 +340,12 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, epoch,
                 if tb_helper.custom_fn:
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
+                # tensorboard network visualization
+                if epoch==0 and num_batches==1:
+                    print('\n', f'trying to add network graph epoch: {epoch}, batch: {num_batches}')
+                    tb_helper.writer.add_graph(model, inputs)
+                    print('WORKED')
+
 
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
                 break
@@ -528,6 +539,11 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
                 if tb_helper.custom_fn:
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
+                # tensorboard network visualization
+                if epoch==0 and num_batches==1:
+                    print('\n', f'trying to add network graph epoch: {epoch}, batch: {num_batches}')
+                    tb_helper.writer.add_graph(model, inputs)
+                    print('WORKED')
 
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
                 break

@@ -58,28 +58,58 @@
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_4*.root' \
 # ${PATH_TO_DATA}'tschRefPointNoWidthRW_5*.root' \
 
+# === gen particles ===
+# PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
+# DATA_CONFIG='data/genak8_hl_features_lin.yaml'
 
-PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/'
-python train.py \
---data-train \
-${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
---data-test \
-${PATH_TO_DATA}'tschRefPointNoWidthRW_1.root' \
---data-config 'data/genak8_hl_features_lin.yaml' \
---network-config 'networks/mlp_genjetAK8_lin.py'  \
---batch-size 1000  \
---num-workers 1 \
---start-lr 5e-4 \
---num-epochs 1 \
---optimizer ranger \
---lr-scheduler none \
---regression-mode \
---gpus 0 \
---model-prefix models/mlp_hl_lin_test_10/{auto} \
---fetch-by-files \
---fetch-step 1 \
+# === delphes detector sim ===
+PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v5/tschRefPointNoWidthRW/'
+DATA_CONFIG='data/delphes_hl_features_lin.yaml'
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_[1-7]?.root' \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
+
+# python train.py \
+# --data-train \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
+# --data-test \
+# ${PATH_TO_DATA}'tschRefPointNoWidthRW_?.root' \
+# --data-config ${DATA_CONFIG} \
+# --network-config 'networks/mlp_genjetAK8_lin.py' \
+# --batch-size 1000 \
+# --num-workers 3 \
+# --start-lr 5e-4 \
+# --num-epochs 1 \
+# --optimizer ranger \
+# --lr-scheduler none \
+# --regression-mode \
+# --gpus 0 \
+# --model-prefix models/mlp_hl_lin_delphes_test_tensorboard/mlp \
+# --fetch-by-files \
+# --fetch-step 10 \
+# --tensorboard tensorboard \
 
 
 # --in-memory \
 # --steps-per-epoch 1
-# --tensorboard tensorboard \
+
+# === weighted particle net ===
+
+python train.py \
+--data-train \
+'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_70.root' \
+--data-test \
+'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_71.root' \
+--data-config 'data/ak8_points_pf_full_weighttest.yaml' \
+--network-config 'networks/particle_net_genjetAK8_weighttest.py' \
+--model-prefix 'models/ParticleNet_weighted_test_visualization/pNet' \
+--batch-size 100 \
+--lr-scheduler none \
+--start-lr 5e-3 \
+--num-epochs 1 \
+--optimizer ranger \
+--regression-mode \
+--gpus 0 \
+--weighting \
+--fetch-by-files \
+--fetch-step 10 \
+--tensorboard pNet_visualization \
