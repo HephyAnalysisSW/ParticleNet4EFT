@@ -495,7 +495,7 @@ def optim(args, model, device):
         else:
             _logger.warning('Optimizer state file %s NOT found!' % opt_state_file)
 
-    scheduler = Nonetrain
+    scheduler = None
     if args.lr_finder is None:
         if args.lr_scheduler == 'steps':
             lr_step = round(args.num_epochs / 3)
