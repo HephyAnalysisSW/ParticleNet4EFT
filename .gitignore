@@ -145,3 +145,4 @@ models/
 
 # tensorboard runs directory
 runs/
+.vscode/settings.json
