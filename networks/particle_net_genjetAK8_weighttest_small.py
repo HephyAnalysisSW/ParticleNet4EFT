@@ -5,11 +5,11 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (64, 64, 64)),
-        (16, (128, 128, 128)),
-        (16, (256, 256, 256)),
+        (4, (16, 16, 16)),
+        (4, (32, 32, 32)),
+        (4, (64, 64, 64)),
         ]
-    fc_params = [(256, 0.1)]
+    fc_params = [(64, 0.1)]
     use_fusion = True
 
     eflow_features_dims    = len(data_config.input_dicts['eflow_features'])

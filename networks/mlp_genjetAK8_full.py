@@ -1,41 +1,46 @@
 import torch
-from utils.nn.model.ParticleNet import ParticleNetTagger
+from torch import nn
 from torch import Tensor
-import math
+
+# create a MLP class
+class MLP(nn.Module):
+
+    def __init__(self, input_nfeatures, num_classes, hidden_layers=(), **kwargs):
+        super().__init__(**kwargs)
+        channels = [input_nfeatures] + list(hidden_layers) + [num_classes]
+        layers = []
+        for c, c_next in zip(channels[:-1], channels[1:]):
+            layers.append(nn.BatchNorm1d(c))
+            layers.append(nn.Linear(c, c_next, bias=True))
+            # layers.append(nn.BatchNorm1d(c_next))
+            layers.append(nn.ReLU())
+        del layers[-1:]
+        self.mlp = nn.Sequential(*layers)
+
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+        return self.mlp(x)
+
 
 def get_model(data_config, **kwargs):
-    conv_params = [
-        (16, (64, 64, 64)),
-        (16, (128, 128, 128)),
-        (16, (256, 256, 256)),
-        ]
-    fc_params = [(256, 0.1)]
-    use_fusion = True
-
-    eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
-    global_features_dims = len(data_config.input_dicts['global_features'])
-    # training linear and quadratic together:
+    hidden_layers = (300,100,100)
+    _, pf_length, pf_feature_dims = data_config.input_shapes['hl_features']
+    # print(pf_length, pf_feature_dims)
+    input_dims = pf_length * pf_feature_dims
     num_classes = 2 #len(data_config.label_value)
-    model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
-                              conv_params, fc_params,
-                              use_fusion=use_fusion,
-                              use_fts_bn=kwargs.get('use_fts_bn', False),
-                              use_counts=kwargs.get('use_counts', True),
-                              constituents_input_dropout=kwargs.get('constituents_input_dropout', None),
-                              global_input_dropout=kwargs.get('global_input_dropout', None),
-                              for_inference=kwargs.get('for_inference', False)
-                              )
+    model = MLP(input_dims, num_classes, hidden_layers=hidden_layers)
 
     model_info = {
         'input_names':list(data_config.input_names),
         'input_shapes':{k:((1,) + s[1:]) for k, s in data_config.input_shapes.items()},
-        #'output_names':['softmax'],
-        #'dynamic_axes':{**{k:{0:'N', 2:'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'softmax':{0:'N'}}},
-        'output_names': ['output'],
-        'dynamic_axes': {**{k: {0: 'N', 2: 'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'output': {0: 'N'}}},
+        'output_names':['softmax'],
+        'dynamic_axes':{**{k:{0:'N', 2:'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'softmax':{0:'N'}}},
         }
 
+    print(model, model_info)
     return model, model_info
+
 
 class LossLikelihoodFree(torch.nn.L1Loss):
     __constants__ = ['reduction']
@@ -54,6 +59,7 @@ class LossLikelihoodFree(torch.nn.L1Loss):
         weight      = target[:,0] # this is the weight
         target_lin  = target[:,1] # this is the linear term
         target_quad = target[:,2] # this is the quadratic term
+
 
         loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + .5*self.base_points[0]**2*(target_quad-input[:,1]) )**2
         for theta_base in self.base_points[1:]: #two base-points: 1,2
@@ -76,4 +82,3 @@ class LossLikelihoodFree(torch.nn.L1Loss):
 def get_loss(data_config, **kwargs):
     return LossLikelihoodFree()
     #return torch.nn.MSELoss() 
-
