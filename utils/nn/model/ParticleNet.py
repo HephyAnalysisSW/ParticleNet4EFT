@@ -264,9 +264,10 @@ class ParticleNetTagger(nn.Module):
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
         self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
         self.constituents_conv = FeatureConv(constituents_features_dims, 32)
-        self.global_conv = FeatureConv(global_features_dims, 64) #FIXME should be removed!
+        # self.global_conv = FeatureConv(global_features_dims, 64) #FIXME should be removed!
+        self.global_batchnorm = nn.BatchNorm1d(global_features_dims)
         self.pn = ParticleNet(input_dims=32,
-                              global_dims=64,
+                              global_dims=global_features_dims, #64,
                               num_classes=num_classes,
                               conv_params=conv_params,
                               fc_params=fc_params,
@@ -283,6 +284,7 @@ class ParticleNetTagger(nn.Module):
 
         points   = constituents_points #torch.cat((constituents_points, neh_points, el_points, mu_points, ph_points), dim=2)
         features = self.constituents_conv(constituents_features * constituents_mask) * constituents_mask# torch.cat((self.chh_conv(chh_features * chh_mask) * chh_mask, self.neh_conv(neh_features * neh_mask) * neh_mask, self.el_conv(el_features * el_mask) * el_mask, self.mu_conv(mu_features * mu_mask) * mu_mask, self.ph_conv(ph_features * ph_mask) * ph_mask), dim=2)
-        global_features = self.global_conv(global_features)
+        # global_features = self.global_conv(global_features)
+        global_features = self.global_batchnorm(global_features)
         mask = constituents_mask #torch.cat((chh_mask, neh_mask, el_mask, mu_mask, ph_mask), dim=2)
         return self.pn(points, features, global_features, mask)
