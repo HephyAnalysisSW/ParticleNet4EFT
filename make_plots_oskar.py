@@ -1,3 +1,4 @@
+from audioop import lin2adpcm
 import sys
 
 sys.path.insert(0, "/users/oskar.rothbacher/CMS/ML-pytorch")
@@ -66,14 +67,23 @@ args = parser.parse_args()
 
 def main(args):
 
-    args.output = DEFAULT_PLOT_DIRECTORY / args.output
-    pathlib.Path.mkdir(args.output, parents=True, exist_ok=True)
+    args.output = DEFAULT_PLOT_DIRECTORY #/ args.model_name
     args.model_name = DEFAULT_MODEL_PATH / args.model_name
 
+    # check if the model path exists
     if args.model_name.exists() is False:
         print(
             f"model folder '{args.model_name}' not found in '{DEFAULT_MODEL_PATH}', quitting."
         )
+        sys.exit()
+
+    # check if predict_output exists in the model path
+    predict_output_path = args.model_name / "predict_output"
+    # print(predict_output_path)
+    if predict_output_path.exists():
+        pathlib.Path.mkdir(args.output, parents=True, exist_ok=True)
+    else:
+        print(f"No predictions for {args.model_name} exist.")
         sys.exit()
 
     if args.interactive:
@@ -87,94 +97,189 @@ def main(args):
     branch_list = list(itertools.chain(*branch_grouped_dict.values()))
     cut = config.get("cut")
 
-    data = uproot.concatenate(data_files, branches=branch_list, cut=cut)
-
-    weight_data = ak.to_numpy(data[config["branches"]["weight_coeff"][0]])
+    if args.nr_files != 0:
+        data = uproot.concatenate(data_files, branches=branch_list, cut=cut)
+        weight_data = ak.to_numpy(data[config["branches"]["weight_coeff"][0]])
 
     weight_helper = WeightHelper(("ctWRe",), order=2)
 
-    wSM = weight_helper.make_eft_weights(weight_data, order=0, ctWRe=0)
-    wEFT = weight_helper.make_eft_weights(weight_data, order=2, ctWRe=1)
+    # wSM = weight_helper.make_eft_weights(weight_data, order=0, ctWRe=0)
+    # wEFT = weight_helper.make_eft_weights(weight_data, order=2, ctWRe=1)
 
     # read predict_output root file
     # weaver prediction only supports 1-d arrays as observers when using root files as output format
     # with uproot.open(
-    #     str(list(args.model_name.glob("predict_output/*.root"))[-1]) + ":Events"
+    #     str(list(args.model_name.glob("predict_output/*.root"))[-1]) + ":E
+    #
+    # vents"
     # ) as pred_out_file:
     #     pred_out = pred_out_file.arrays(library="np")
 
     # read predict_output awkward file
     # weaver supports awkward arrays when using awkward files as output format, usefull for weight data
-    pred_out = dict(
-        ak0.load(str(list(args.model_name.glob("predict_output/*.awkd"))[-1]))
+
+    # print("predict list")
+    # print(str(list(args.model_name.glob("predict_output/*at*.awkd"))[-1]))
+    # sys.exit()
+
+    try:
+        pred_out = dict(
+            ak0.load(str(list(args.model_name.glob("predict_output/*at*.awkd"))[-1]))          # last epoch
+            # ak0.load(args.model_name / "predict_output" / "best_epoch_prediction.awkd")   # 'best' epoch
+        )
+    except:
+        sys.exit()
+
+    # print(pred_out.keys())
+
+    lin = pred_out["scores"][:, 0]
+    quad = pred_out["scores"][:, 1]
+    weights = pred_out["ctWRe_coeffs"]
+
+    # with PdfPages(args.output / "nn_LLR.pdf") as pdf:
+
+    # LLR plot for nn output
+    fig = plt.figure(figsize=[12,15], constrained_layout=True)
+    fig.suptitle(f"Model evaluation for '{str(args.model_name).split('/')[-1]}'")
+    ax_dict = fig.subplot_mosaic(
+        """
+        AACC
+        AACC
+        BBCC
+        DDEE
+        DDEE
+        """
     )
+
+    # LLR plot
+    interval = plot_LLR_full(
+        ax=ax_dict["C"],
+        lin=lin,
+        quad=quad,
+        weights=weights,
+        n_plot_grid=100,
+        norm_to_nevents=1000
+    )
+
+    # interval = np.array([-0.5,0.5])
+
+    # hists
+    print("hists")
+    plot_nn_hist(
+        ax=ax_dict["A"],
+        lin=lin,
+        quad=quad,
+        weights=weights,
+        param_values=interval,
+        use_weighted_quantiles=True,
+        ratio_hist=False,
+        norm_to_nevents=1000,
+        title="lin+0.5*quad hist",
+    )
+
+    print("ratio hists")
+    # ratio hists
+    plot_nn_hist(
+        ax=ax_dict["B"],
+        lin=lin,
+        quad=quad,
+        weights=weights,
+        param_values=interval,
+        use_weighted_quantiles=True,
+        ratio_hist=True,
+        norm_to_nevents=1000,
+        title="lin+0.5*quad ratio hist"
+    )
+
+    # pred target for lin
+    pred_target_hist2d(
+        ax=ax_dict["D"],
+        label="linear coefficient",
+        pred=lin,
+        target=weights[:, 1],
+        bins=100,
+        log=True,
+    )
+
+    # pred target for quad
+    pred_target_hist2d(
+        ax=ax_dict["E"],
+        label="quadratic coefficient",
+        pred=quad,
+        target=weights[:, 2],
+        bins=100,
+        log=True,
+    )
+
+    fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}_LLR.png")
+
     print(args.output)
     # all the plots go inside this context manager
-    with PdfPages(args.output / "nn_LLR.pdf") as pdf:
+    # with PdfPages(args.output / "nn_LLR.pdf") as pdf:
 
-        # LLR plot for nn output
-        ax_dict = plt.figure(constrained_layout=True).subplot_mosaic(
-            """
-            AADD
-            AADD
-            BBDD
-            """
-        )
+    #     # LLR plot for nn output
+    #     ax_dict = plt.figure(constrained_layout=True).subplot_mosaic(
+    #         """
+    #         AADD
+    #         AADD
+    #         BBDD
+    #         """
+    #     )
 
-        # nn hists
-        # ctWRe = -1
-        weight_helper.set_eft_params(ctWRe=-1)
-        plot_hist(
-            ax=ax_dict["A"],
-            var_name="scores",
-            pred_out=pred_out,
-            weight_helper=weight_helper,
-            eq_width=False,
-            ratio_hist=False,
-        )
-        # ctWRe = 1
-        weight_helper.set_eft_params(ctWRe=1)
-        plot_hist(
-            ax=ax_dict["A"],
-            var_name="scores",
-            pred_out=pred_out,
-            weight_helper=weight_helper,
-            eq_width=False,
-            ratio_hist=False,
-        )
+    #     # nn hists
+    #     # ctWRe = -1
+    #     weight_helper.set_eft_params(ctWRe=-1)
+    #     plot_hist(
+    #         ax=ax_dict["A"],
+    #         var_name="scores",
+    #         pred_out=pred_out,
+    #         weight_helper=weight_helper,
+    #         eq_width=False,
+    #         ratio_hist=False,
+    #     )
+    #     # ctWRe = 1
+    #     weight_helper.set_eft_params(ctWRe=1)
+    #     plot_hist(
+    #         ax=ax_dict["A"],
+    #         var_name="scores",
+    #         pred_out=pred_out,
+    #         weight_helper=weight_helper,
+    #         eq_width=False,
+    #         ratio_hist=False,
+    #     )
 
-        # nn ratio hists
-        # ctWRe = -1
-        weight_helper.set_eft_params(ctWRe=-1)
-        plot_hist(
-            ax=ax_dict["B"],
-            var_name="scores",
-            pred_out=pred_out,
-            weight_helper=weight_helper,
-            eq_width=False,
-            ratio_hist=True,
-        )
-        # ctWRe = 1
-        weight_helper.set_eft_params(ctWRe=1)
-        plot_hist(
-            ax=ax_dict["B"],
-            var_name="scores",
-            pred_out=pred_out,
-            weight_helper=weight_helper,
-            eq_width=False,
-            ratio_hist=True,
-        )
+    #     # nn ratio hists
+    #     # ctWRe = -1
+    #     weight_helper.set_eft_params(ctWRe=-1)
+    #     plot_hist(
+    #         ax=ax_dict["B"],
+    #         var_name="scores",
+    #         pred_out=pred_out,
+    #         weight_helper=weight_helper,
+    #         eq_width=False,
+    #         ratio_hist=True,
+    #     )
+    #     # ctWRe = 1
+    #     weight_helper.set_eft_params(ctWRe=1)
+    #     plot_hist(
+    #         ax=ax_dict["B"],
+    #         var_name="scores",
+    #         pred_out=pred_out,
+    #         weight_helper=weight_helper,
+    #         eq_width=False,
+    #         ratio_hist=True,
+    #     )
 
-        plot_LLR(
-            ax=ax_dict["D"],
-            var_names=("scores", "lin_ctWRe"),
-            eft_param="ctWRe",
-            pred_out=pred_out,
-            weight_helper=weight_helper,
-            n_plot_grid=1000,
-        )
-        pdf.savefig()
-        plt.close()
+    #     plot_LLR(
+    #         ax=ax_dict["D"],
+    #         var_names=("scores", "lin_ctWRe"),
+    #         eft_param="ctWRe",
+    #         pred_out=pred_out,
+    #         weight_helper=weight_helper,
+    #         n_plot_grid=1000,
+    #     )
+    #     pdf.savefig()
+    #     plt.close()
 
 
 class WeightHelper:
@@ -251,7 +356,7 @@ class WeightHelper:
         ]
 
 
-# LLR plot
+# LLR
 def LLR(
     variable: np.ndarray,
     weight_data: np.ndarray,
@@ -272,7 +377,7 @@ def LLR(
         )
 
     n_hat_0, _ = np.histogram(variable, bins=bins, weights=w_SM)
-    normalize_hist(n_hat_0, norm_to_nevents)
+    n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
 
     LLR = []
     for value in param_values:
@@ -281,7 +386,7 @@ def LLR(
             bins=bins,
             weights=weight_helper.make_eft_weights(weight_data, **{eft_param: value}),
         )
-        normalize_hist(n_hat)
+        n_hat = normalize_hist(n_hat, norm_to_nevents)
         LLR.append(-2 * (n_hat_0 * np.log(n_hat) - n_hat).sum())
     return np.array(LLR)
 
@@ -335,6 +440,101 @@ def plot_LLR(
     ax.legend()
 
 
+# LLR from predicted lin and quad weight coeffs
+def LLR_full(
+    lin: np.ndarray,
+    quad: np.ndarray,
+    weights: np.ndarray,
+    param_values: np.ndarray,
+    bins: int = 20,
+    use_weighted_quantiles: bool = True,
+    norm_to_nevents: int = 1000,
+):
+    LLR = []
+    for value in param_values:
+        estimator = lin + 0.5 * value * quad
+        w_SM = weights[:, 0]
+        w_EFT = weights[:, 0] * (
+            1 + value * weights[:, 1] + 0.5 * value**2 * weights[:, 2]
+        )
+
+        if use_weighted_quantiles:
+            bin_edges = weighted_quantile(
+                values=estimator,
+                quantiles=np.linspace(0, 1, bins + 1),
+                sample_weight=w_SM,
+            )
+        else:
+            bin_edges = bins
+
+        n_hat_0, bin_edges = np.histogram(estimator, bin_edges, weights=w_SM)
+        n_hat, _ = np.histogram(estimator, bin_edges, weights=w_EFT)
+
+        n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
+        n_hat = normalize_hist(n_hat, norm_to_nevents)
+
+        LLR.append(-2 * (n_hat_0 * np.log(n_hat) - n_hat).sum())
+    return np.array(LLR)
+
+
+# LLR plot for full estimator
+def plot_LLR_full(
+    ax: plt.Axes,
+    lin: np.ndarray,
+    quad: np.ndarray,
+    weights: np.ndarray,
+    param_range: tuple[float, float] = (-1.0, 1.0),
+    n_plot_grid: int = 100,
+    bins: int = 20,
+    use_weighted_quantiles: bool = True,
+    norm_to_nevents: int = 1000,
+):
+    plot_grid = np.linspace(*param_range, n_plot_grid)
+
+    LLR_plot = LLR_full(
+        lin=lin,
+        quad=quad,
+        weights=weights,
+        param_values=plot_grid,
+        bins=bins,
+        use_weighted_quantiles=use_weighted_quantiles,
+        norm_to_nevents=norm_to_nevents,
+    )
+
+    LLR_plot_true = LLR_full(
+        lin=weights[:, 1],
+        quad=weights[:, 2],
+        weights=weights,
+        param_values=plot_grid,
+        bins=bins,
+        use_weighted_quantiles=use_weighted_quantiles,
+        norm_to_nevents=norm_to_nevents,
+    )
+
+    LLR_min = np.min(LLR_plot)
+    idcs_intervall = np.argwhere(np.diff(np.sign(LLR_plot - LLR_min - 1)))
+
+    LLR_plot -= LLR_min
+    LLR_plot_true -= LLR_min
+
+    ax.plot(plot_grid, LLR_plot, label="network")
+    ax.plot(plot_grid, LLR_plot_true, label="true_weight_coeffs")
+
+    ax.set_xlabel("ctWRe", fontsize="x-small")
+    ax.set_ylabel("LLR", fontsize="x-small")
+
+    ax.plot(plot_grid, np.full_like(plot_grid, 1), "k:")
+    ax.plot(plot_grid[idcs_intervall], LLR_plot[idcs_intervall], "or")
+
+    ax.set_title("LLR plot", fontsize="small")
+    ax.legend(fontsize="x-small")
+
+    ax.tick_params("both", labelsize="xx-small")
+    # ax.tick_params("y", labelrotation=90)
+
+    return plot_grid[idcs_intervall].flatten()
+
+
 # histograms
 def plot_hist(
     ax: plt.Axes,
@@ -358,17 +558,110 @@ def plot_hist(
 
     hist_SM, bins = np.histogram(pred_out[var_name], bins, weights=w_SM)
     hist_EFT, _ = np.histogram(pred_out[var_name], bins, weights=w_EFT)
-    normalize_hist(hist_SM, norm_to_nevents)
-    normalize_hist(hist_EFT, norm_to_nevents)
+    hist_SM = normalize_hist(hist_SM, norm_to_nevents)
+    hist_EFT = normalize_hist(hist_EFT, norm_to_nevents)
 
     if ratio_hist:
         ratio = hist_SM / hist_EFT
-        ax.stairs(ratio, bins, label=f"{weight_helper.eft_params}")
-        ax.stairs(np.ones_like(hist_SM), bins)
+        ax.stairs(ratio, label=f"{weight_helper.eft_params}")
+        ax.stairs(np.ones_like(hist_SM))
     else:
-        ax.stairs(hist_SM, bins, label=f"{weight_helper.eft_params}")
-        ax.stairs(hist_EFT, bins)
+        ax.stairs(hist_SM, label=f"{weight_helper.eft_params}")
+        ax.stairs(hist_EFT)
     ax.legend()
+
+
+def plot_nn_hist(
+    ax: plt.Axes,
+    lin: np.ndarray,
+    quad: np.ndarray,
+    weights: np.ndarray,
+    param_values: np.ndarray,
+    bins: int = 20,
+    use_weighted_quantiles: bool = True,
+    ratio_hist: bool = False,
+    norm_to_nevents: int = 1000,
+    title: str = None
+):
+    w_SM = weights[:, 0]
+
+    if use_weighted_quantiles:
+        bin_edges = weighted_quantile(
+            values=lin,
+            quantiles=np.linspace(0, 1, bins + 1),
+            sample_weight=w_SM,
+        )
+    else:
+        bin_edges = bins
+
+    n_hat_0, bin_edges = np.histogram(lin, bins=bin_edges, weights=w_SM)
+    n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
+
+    if ratio_hist:
+        ax.stairs(np.ones_like(n_hat_0))
+    else:
+        ax.stairs(n_hat_0, label="sm")
+
+    for value in param_values:
+        estimator = lin + 0.5 * value * quad
+        w_SM = weights[:, 0]
+        w_EFT = weights[:, 0] * (
+            1 + value * weights[:, 1] + 0.5 * value**2 * weights[:, 2]
+        )
+
+        if use_weighted_quantiles:
+            bin_edges = weighted_quantile(
+                values=estimator,
+                quantiles=np.linspace(0, 1, bins + 1),
+                sample_weight=w_SM,
+            )
+        else:
+            bin_edges = bins
+
+        n_hat_0, bin_edges = np.histogram(estimator, bin_edges, weights=w_SM)
+        n_hat, _ = np.histogram(estimator, bin_edges, weights=w_EFT)
+
+        n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
+        n_hat = normalize_hist(n_hat, norm_to_nevents)
+
+        if ratio_hist:
+            ratio = n_hat_0 / n_hat
+            ax.stairs(ratio, label=f"ctWRe={value:.2}")
+            ax.set_ylim(0.7,1.3)
+        else:
+            ax.stairs(n_hat, label=f"ctWRe={value:.2}")
+
+    ax.legend(loc="lower right", fontsize="x-small")
+    ax.tick_params("both", labelsize="xx-small")
+    ax.set_title(title, fontsize="small")
+    ax.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
+
+
+
+def pred_target_hist2d(
+    ax: plt.Axes,
+    label: str,
+    pred: np.ndarray,
+    target: np.ndarray,
+    bins: int = 100,
+    range: list[list[float]] = [[-0.5, 0.5], [-0.5, 0.5]],
+    log: bool = True,
+):
+    ax.hist2d(
+        target,
+        pred,
+        bins=bins,
+        range=range,
+        norm=colors.SymLogNorm(1) if log else None,
+    )
+    ax.plot(*range)
+    #ax.colorbar() need to figure out how to use with Axes style
+    ax.set_title(label, fontsize="small")
+    ax.set_xlabel("prediction", fontsize="x-small")
+    ax.set_ylabel("target", fontsize="x-small")
+    ax.tick_params("both", labelsize="xx-small")
+    ax.tick_params("y", labelrotation=90)
+
 
 
 def normalize_hist(hist: np.ndarray, norm_to_nevents: int = 1000) -> None:
@@ -376,8 +669,8 @@ def normalize_hist(hist: np.ndarray, norm_to_nevents: int = 1000) -> None:
     normalize a histogram to a number of events
     """
     norm = float(hist.sum())
-    hist *= norm_to_nevents / norm
-    return None
+    hist = hist * (norm_to_nevents / norm)
+    return hist
 
 
 # https://stackoverflow.com/questions/21844024/weighted-percentile-using-numpy
