@@ -28,6 +28,20 @@
 
 <!-- /TOC -->
 
+## Setup Weaver: ParticleNet4EFT
+This is the setup we use at HEPHY
+```
+git clone https://github.com/hqucms/weaver.git
+conda create -n weaver python=3.7
+conda activate weaver
+pip install numpy pandas scikit-learn scipy matplotlib tqdm PyYAML
+pip install uproot3 awkward0 lz4 xxhash
+pip install tables
+pip install onnxruntime-gpu
+pip install tensorboard
+pip install torch
+```
+
 ## Set up your environment
 
 The `Weaver` package requires Python 3.7+ and a number of packages like `numpy`, `scikit-learn`, `PyTorch`, etc.
