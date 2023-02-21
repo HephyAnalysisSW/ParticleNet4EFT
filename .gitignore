@@ -151,4 +151,3 @@ runs/
 
 # slurm related files
 *.out
-*.sbatch
