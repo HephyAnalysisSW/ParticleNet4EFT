@@ -1,3 +1,19 @@
+
+
+## Setup Weaver: ParticleNet4EFT
+This is the setup we use at HEPHY
+```
+git clone https://github.com/hqucms/weaver.git
+conda create -n weaver python=3.7
+conda activate weaver
+pip install numpy pandas scikit-learn scipy matplotlib tqdm PyYAML
+pip install uproot3 awkward0 lz4 xxhash
+pip install tables
+pip install onnxruntime-gpu
+pip install tensorboard
+pip install torch
+```
+
 # Weaver
 
 `Weaver` aims at providing a streamlined yet flexible machine learning R&D framework for high energy physics (HEP) applications. It puts particular emphases on:
