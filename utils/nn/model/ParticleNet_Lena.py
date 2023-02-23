@@ -262,21 +262,21 @@ class ParticleNet(nn.Module):
         # output = x
         for idx, layer in enumerate(self.fc):            
             x = layer(x)
-            print ("DNN1: step ",idx, ", shape is ", x.shape)
+            #print ("DNN1: step ",idx, ", shape is ", x.shape)
         for idx, layer in enumerate(self.fc_global): 
-            print ("ACHTUNG")
+            #print ("ACHTUNG")
             if idx == 0:
                 y = layer(global_features[:,:,0]) #add lepton features
             else:            
                 y = layer(y)   
-            print ("DNN1# global: step ",idx, ", shape is ", y.shape)    
+            #print ("DNN1# global: step ",idx, ", shape is ", y.shape)    
         for idx, layer in enumerate(self.fc_combined):            
             if idx == 0:
-                print (x.shape, y.shape)
+                #print (x.shape, y.shape)
                 x = layer(torch.cat((x, y), dim=1)) #add lepton features
             else:            
                 x = layer(x) 
-            print ("DNN1# global: step ",idx, ", shape is ", x.shape)     
+            #print ("DNN1# global: step ",idx, ", shape is ", x.shape)     
         output = x
 
         if self.for_inference:
