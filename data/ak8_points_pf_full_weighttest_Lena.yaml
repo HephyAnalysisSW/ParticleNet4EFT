@@ -82,7 +82,7 @@ inputs:
    eflow_mask:
       length: 10
       vars: 
-         - recoJet_const_mask
+         - recoJet_pt
 
 labels:
    ### type can be `simple`, `custom`
