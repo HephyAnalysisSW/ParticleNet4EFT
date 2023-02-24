@@ -175,8 +175,7 @@ class ParticleNet(nn.Module):
                                          nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
             else:
                 fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
-        print (in_chn)
-        # LENA PFUSCHT HINEIN AB DA
+        
         for idx, layer_param in enumerate(fc_global_params):
             channels, drop_rate = layer_param
             if idx == 0:
@@ -189,28 +188,24 @@ class ParticleNet(nn.Module):
             else:
                 fcs_global.append(nn.Sequential(nn.Linear(in_chn_global, channels), nn.ReLU(), nn.Dropout(drop_rate)))
 
-        # LENA PFUSCHT IMMER NOCH
         for idx, layer_param in enumerate(fc_combined_params):
             channels, drop_rate = layer_param
             if idx == 0:
-                in_chn = fc_params[-1][0] + fc_global_params[-1][0] + out_chn if self.use_fusion else fc_params[-1][0]  + fc_global_params[-1][0]
+                in_chn_combined = fc_params[-1][0] + fc_global_params[-1][0] + out_chn if self.use_fusion else fc_params[-1][0]  + fc_global_params[-1][0]
             else:
-                in_chn = fc_params[idx - 1][0]
+                in_chn_combined = fc_combined_params[idx - 1][0]
             if self.for_segmentation:
-                fcs_combined.append(nn.Sequential(nn.Conv1d(in_chn, channels, kernel_size=1, bias=False),
+                fcs_combined.append(nn.Sequential(nn.Conv1d(in_chn_combined, channels, kernel_size=1, bias=False),
                                          nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
             else:
-                fcs_combined.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
-                
-        #fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]+global_dims), nn.ReLU(), nn.Dropout(fc_params[-1][1]))) #add additional layer for adding global features
-        #fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]), nn.ReLU(), nn.Dropout(fc_params[-1][1])))
-         
+                fcs_combined.append(nn.Sequential(nn.Linear(in_chn_combined, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+                 
         
         if self.for_segmentation:
             fcs_combined.append(nn.Conv1d(fc_combined_params[-1][0], num_classes, kernel_size=1))
         else:
             fcs_combined.append(nn.Linear(fc_combined_params[-1][0], num_classes))
-        # LENA HOERT AUF ZU PFUSCHEN UND HOFFT     
+            
         self.fc = nn.Sequential(*fcs)
         self.fc_global = nn.Sequential(*fcs_global)
         self.fc_combined = nn.Sequential(*fcs_combined)
@@ -218,8 +213,7 @@ class ParticleNet(nn.Module):
         self.for_inference = for_inference
 
     def forward(self, points, features, global_features, mask=None):
-#         print('points:\n', points)
-#         print('features:\n', features)
+#         
         if mask is None:
             mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
         points *= mask
