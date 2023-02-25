@@ -12,7 +12,7 @@ def get_model(data_config, **kwargs):
     fc_params = [(256, 0.1)]
     use_fusion = True
 
-    eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
+    eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
     # training linear and quadratic together:
     num_classes = 2 #len(data_config.label_value)

@@ -128,8 +128,8 @@ class ParticleNet(nn.Module):
                  num_classes,
                  conv_params,
                  fc_params,
-                 fc_global_params,
-                 fc_combined_params,
+                 fc_global_params=None,
+                 fc_combined_params=None,
                  use_fusion=False,
                  use_fts_bn=True,
                  use_counts=True,
@@ -171,24 +171,29 @@ class ParticleNet(nn.Module):
                 in_chn = fc_params[idx - 1][0]
 
             fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
-        
-        for idx, layer_param in enumerate(fc_global_params):
-            channels, drop_rate = layer_param
-            if idx == 0:
-                in_chn_global = global_dims
-            else:
-                in_chn_global = fc_global_params[idx - 1][0]
+       
+        if fc_global_params is not None: 
+            for idx, layer_param in enumerate(fc_global_params):
+                channels, drop_rate = layer_param
+                if idx == 0:
+                    in_chn_global = global_dims
+                else:
+                    in_chn_global = fc_global_params[idx - 1][0]
 
-            fcs_global.append(nn.Sequential(nn.Linear(in_chn_global, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+                fcs_global.append(nn.Sequential(nn.Linear(in_chn_global, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+            global_output_dims =  fc_global_params[-1][0]
+        else:
+            global_output_dims = global_dims
         
         # if no combined layers are used:
-        if fc_combined_params == None: 
-            fcs_combined.append(nn.Linear(fc_params[-1][0] + fc_global_params[-1][0], num_classes))
+        if fc_combined_params is None: 
+            fcs_combined.append(nn.Linear(fc_params[-1][0] + global_output_dims, num_classes))
         else:         
             for idx, layer_param in enumerate(fc_combined_params):
                 channels, drop_rate = layer_param
                 if idx == 0:
-                    in_chn_combined = fc_params[-1][0] + fc_global_params[-1][0] + out_chn if self.use_fusion else fc_params[-1][0]  + fc_global_params[-1][0]
+                    #in_chn_combined = fc_params[-1][0] +global_output_dims + out_chn if self.use_fusion else fc_params[-1][0]  + global_output_dims  # FIXME: fusion only in fc_params
+                    in_chn_combined = fc_params[-1][0] +global_output_dims 
                 else:
                     in_chn_combined = fc_combined_params[idx - 1][0]
 
@@ -233,15 +238,20 @@ class ParticleNet(nn.Module):
         else:
             x = fts.mean(dim=-1)
 
+        print ("x", x.shape)
         for idx, layer in enumerate(self.fc):            
             x = layer(x)
-        for idx, layer in enumerate(self.fc_global): 
-            if idx == 0:
-                y = layer(global_features[:,:,0]) #add global features
-            else:            
-                y = layer(y)   
-                
-        for idx, layer in enumerate(self.fc_combined):            
+
+        if len( self.fc_global) > 0:
+            for idx, layer in enumerate(self.fc_global): 
+                if idx == 0:
+                    y = layer(global_features[:,:,0]) #add global features
+                else:            
+                    y = layer(y)
+        else:
+            y = global_features[:,:,0] 
+
+        for idx, layer in enumerate(self.fc_combined): 
             if idx == 0:
                 x = layer(torch.cat((x, y), dim=1)) # concat global DNN and DNN after GNN
             else:            
@@ -275,8 +285,8 @@ class ParticleNetTagger(nn.Module):
                  num_classes,
                  conv_params,
                  fc_params,
-                 fc_global_params,
-                 fc_combined_params,
+                 fc_global_params=None,
+                 fc_combined_params=None,
                  use_fusion=True,
                  use_fts_bn=True,
                  use_counts=True,

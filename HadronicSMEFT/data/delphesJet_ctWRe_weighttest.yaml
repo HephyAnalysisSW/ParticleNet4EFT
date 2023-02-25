@@ -1,20 +1,17 @@
 selection:
    ### use `&`, `|`, `~` for logical operations on numpy arrays
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0) 
-
+   #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0) 
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxq1q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
 test_time_selection:
    ### selection to apply at test time (i.e., when running w/ --predict)
-   (genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   (genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxq1q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
 
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   chh_mask: awkward.JaggedArray.ones_like(chh_etarel)
-   neh_mask: awkward.JaggedArray.ones_like(neh_etarel)
-   el_mask: awkward.JaggedArray.ones_like(e_etarel)
-   mu_mask: awkward.JaggedArray.ones_like(mu_etarel)
-   ph_mask: awkward.JaggedArray.ones_like(ph_etarel)
+   eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -24,13 +21,20 @@ preprocess:
   data_fraction: 
 
 inputs:
-   chh_points:
-      length: 50
+   global_features:
+      length: 1
+      vars:
+         - delphesJet_nConstituents
+         - delphesJet_pt
+         - delphesJet_eta
+
+   constituents_points:
+      length: 200
       vars: 
-         - chh_etarel
-         - chh_phirel
-   chh_features:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+   eflow_features:
+      length: 200
       vars: 
       ### [format 1]: var_name (no transformation)
       ### [format 2]: [var_name, 
@@ -39,80 +43,15 @@ inputs:
       ###              clip_min(optional, default=-5), 
       ###              clip_max(optional, default=5), 
       ###              pad_value(optional, default=0)]
-         - chh_etarel
-         - chh_phirel
-         - chh_pt
-         - chh_charge
-   chh_mask:
-      length: 50
+         - eflow_etarel
+         - eflow_phirel
+         - eflow_pt
+         - eflow_charge
+         - eflow_type
+   eflow_mask:
+      length: 200
       vars: 
-         - chh_mask
-
-   neh_points:
-      length: 20
-      vars:
-         - neh_etarel
-         - neh_phirel
-   neh_features:
-      length: 20
-      vars:
-         - neh_etarel
-         - neh_phirel
-         - neh_pt
-   neh_mask:
-      length: 20
-      vars:
-         - neh_mask
-
-   el_points:
-      length: 5
-      vars:
-         - e_etarel 
-         - e_phirel
-   el_features:
-      length: 5
-      vars:
-         - e_etarel
-         - e_phirel
-         - e_pt
-         - e_charge
-   el_mask:
-      length: 5
-      vars:
-         - el_mask
- 
-   mu_points:
-      length: 5
-      vars:
-         - mu_etarel
-         - mu_phirel
-   mu_features:
-      length: 5
-      vars:
-         - mu_etarel
-         - mu_phirel
-         - mu_pt
-         - mu_charge
-   mu_mask:
-      length: 5
-      vars:
-         - mu_mask
-
-   ph_points:
-      length: 50
-      vars:
-         - ph_etarel
-         - ph_phirel
-   ph_features:
-      length: 50
-      vars:
-         - ph_etarel
-         - ph_phirel
-         - ph_pt
-   ph_mask:
-      length: 50
-      vars:
-         - ph_mask
+         - eflow_const_mask
 
 labels:
    ### type can be `simple`, `custom`
@@ -120,19 +59,19 @@ labels:
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
    # value: 
-      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_gen_mass) 
+      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        quad_ctWRe : target_ctWRe_ctWRe
+        ctWRe_coeffs : ctWRe_coeff
 
 observers:
    - genJet_pt
    - genJet_eta
    - genJet_phi
    - genJet_nConstituents
-   - partonTop_pt
+   - parton_top_pt
 
-weights:
+#weights:
    #### [option 1] use precomputed weights stored in the input files
    ## use_precomputed_weights: true
    ## weight_branches: [weight, class_weight]
