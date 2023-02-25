@@ -41,6 +41,10 @@ pip install onnxruntime-gpu
 pip install tensorboard
 pip install torch
 ```
+Get a GPU node with
+```
+srun --partition g --gres=gpu:1 --mem-per-gpu 20G --cpus-per-task 6 --time 12:00:00 --pty bash
+```
 
 ## Set up your environment
 
