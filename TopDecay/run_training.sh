@@ -99,9 +99,9 @@ python train.py \
 '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_70.root' \
 --data-test \
 '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_71.root' \
---data-config 'data/ak8_points_pf_full_weighttest.yaml' \
---network-config 'networks/particle_net_genjetAK8_weighttest.py' \
---model-prefix 'models/ParticleNet_weighted_test_visualization/pNet' \
+--data-config 'TopDecay/data/ak8_points_pf_full_weighttest.yaml' \
+--network-config 'TopDecay/networks/particleNet_AK8_LikelihoodFree.py' \
+--model-prefix 'TopDecay/ParticleNet_weighted_test_visualization/pNet' \
 --batch-size 100 \
 --lr-scheduler none \
 --start-lr 5e-3 \

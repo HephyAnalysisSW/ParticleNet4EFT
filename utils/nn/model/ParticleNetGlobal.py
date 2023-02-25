@@ -134,7 +134,6 @@ class ParticleNet(nn.Module):
                  use_fts_bn=True,
                  use_counts=True,
                  for_inference=False,
-                 for_segmentation=False,
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
 
@@ -158,8 +157,6 @@ class ParticleNet(nn.Module):
             out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
             self.fusion_block = nn.Sequential(nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False), nn.BatchNorm1d(out_chn), nn.ReLU())
 
-        self.for_segmentation = for_segmentation
-
         fcs = []
         fcs_global = []
         fcs_combined = []
@@ -172,11 +169,8 @@ class ParticleNet(nn.Module):
                 
             else:
                 in_chn = fc_params[idx - 1][0]
-            if self.for_segmentation:
-                fcs.append(nn.Sequential(nn.Conv1d(in_chn, channels, kernel_size=1, bias=False),
-                                         nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
-            else:
-                fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+
+            fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
         
         for idx, layer_param in enumerate(fc_global_params):
             channels, drop_rate = layer_param
@@ -184,18 +178,12 @@ class ParticleNet(nn.Module):
                 in_chn_global = global_dims
             else:
                 in_chn_global = fc_global_params[idx - 1][0]
-            if self.for_segmentation:
-                fcs_global.append(nn.Sequential(nn.Conv1d(in_chn_global, channels, kernel_size=1, bias=False),
-                                         nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
-            else:
-                fcs_global.append(nn.Sequential(nn.Linear(in_chn_global, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+
+            fcs_global.append(nn.Sequential(nn.Linear(in_chn_global, channels), nn.ReLU(), nn.Dropout(drop_rate)))
         
         # if no combined layers are used:
         if fc_combined_params == None: 
-            if self.for_segmentation:
-                fcs_combined.append(nn.Conv1d(fc_params[-1][0] + fc_global_params[-1][0], num_classes, kernel_size=1))
-            else:
-                fcs_combined.append(nn.Linear(fc_params[-1][0] + fc_global_params[-1][0], num_classes))
+            fcs_combined.append(nn.Linear(fc_params[-1][0] + fc_global_params[-1][0], num_classes))
         else:         
             for idx, layer_param in enumerate(fc_combined_params):
                 channels, drop_rate = layer_param
@@ -203,16 +191,10 @@ class ParticleNet(nn.Module):
                     in_chn_combined = fc_params[-1][0] + fc_global_params[-1][0] + out_chn if self.use_fusion else fc_params[-1][0]  + fc_global_params[-1][0]
                 else:
                     in_chn_combined = fc_combined_params[idx - 1][0]
-                if self.for_segmentation:
-                    fcs_combined.append(nn.Sequential(nn.Conv1d(in_chn_combined, channels, kernel_size=1, bias=False),
-                                             nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
-                else:
-                    fcs_combined.append(nn.Sequential(nn.Linear(in_chn_combined, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+
+                fcs_combined.append(nn.Sequential(nn.Linear(in_chn_combined, channels), nn.ReLU(), nn.Dropout(drop_rate)))
                                  
-            if self.for_segmentation:
-                fcs_combined.append(nn.Conv1d(fc_combined_params[-1][0], num_classes, kernel_size=1))
-            else:
-                fcs_combined.append(nn.Linear(fc_combined_params[-1][0], num_classes))
+            fcs_combined.append(nn.Linear(fc_combined_params[-1][0], num_classes))
             
         self.fc = nn.Sequential(*fcs)
         self.fc_global = nn.Sequential(*fcs_global)
@@ -246,15 +228,11 @@ class ParticleNet(nn.Module):
 
 #         assert(((fts.abs().sum(dim=1, keepdim=True) != 0).float() - mask.float()).abs().sum().item() == 0)
         
-        if self.for_segmentation:
-            x = fts
+        if self.use_counts:
+            x = fts.sum(dim=-1) / counts  # divide by the real counts
         else:
-            if self.use_counts:
-                x = fts.sum(dim=-1) / counts  # divide by the real counts
-            else:
-                x = fts.mean(dim=-1)
+            x = fts.mean(dim=-1)
 
-        
         for idx, layer in enumerate(self.fc):            
             x = layer(x)
         for idx, layer in enumerate(self.fc_global): 
@@ -288,7 +266,6 @@ class FeatureConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
-
 
 class ParticleNetTagger(nn.Module):
 
