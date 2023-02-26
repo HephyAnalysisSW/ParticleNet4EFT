@@ -481,8 +481,18 @@ def optim(args, model, device):
 
     # load previous training and resume if `--load-epoch` is set
     if args.load_epoch is not None:
-        _logger.info('Resume training from epoch %d' % args.load_epoch)
-        model_state = torch.load(args.model_prefix + '_epoch-%d_state.pt' % args.load_epoch, map_location=device)
+        if args.load_epoch<0:
+            files = glob.glob(args.model_prefix + '_epoch-*_state.pt')
+            if len(files)>0:
+                load_file_name = max( files )
+                args.load_epoch = int(load_file_name.split('-')[-1].split('_')[0])
+            else:
+                raise RuntimeError( "Could not load epoch %d"%args.load_epoch )
+        else:
+            load_file_name = args.model_prefix + '_epoch-%d_state.pt' % args.load_epoch
+
+        _logger.info('Resume training from %s' % load_file_name)
+        model_state = torch.load(load_file_name, map_location=device)
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
             model.module.load_state_dict(model_state)
         else:

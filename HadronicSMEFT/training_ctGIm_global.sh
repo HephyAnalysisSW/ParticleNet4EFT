@@ -10,4 +10,5 @@ python train.py \
     --regression-mode\
     --weighting\
     --tensorboard test\
-    --gpus ""
+    --gpus ""\
+    --load-epoch -1

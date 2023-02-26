@@ -12,7 +12,7 @@ def get_model(data_config, **kwargs):
     fc_params = [(256, 0.1)]
     fc_global_params = None 
     fc_combined_params = [(256, 0.1), (256, 0.1)]#, (256, 0.1)] 
-    use_fusion = True
+    use_fusion = False
 
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
