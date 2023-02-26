@@ -10,7 +10,7 @@ def get_model(data_config, **kwargs):
         (16, (256, 256, 256)),
         ]
     fc_params = [(256, 0.1)]
-    use_fusion = True
+    use_fusion = False
 
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])

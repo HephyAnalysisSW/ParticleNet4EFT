@@ -11,7 +11,7 @@ def get_model(data_config, **kwargs):
         ]
     fc_params = [(256, 0.1)]
     fc_global_params = None 
-    fc_combined_params = [(256, 0.1), (256, 0.1), (256, 0.1)] 
+    fc_combined_params = [(256, 0.1), (256, 0.1)]#, (256, 0.1)] 
     use_fusion = True
 
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
@@ -57,6 +57,11 @@ class LossLikelihoodFree(torch.nn.L1Loss):
         weight      = target[:,0] # this is the weight
         target_lin  = target[:,1] # this is the linear term
         target_quad = target[:,2] # this is the quadratic term
+
+        #if torch.isnan(target).sum():
+        #    print("Found NAN in target!")
+        #if torch.isnan(input).sum():
+        #    print("Found NAN in input!")
 
         loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + .5*self.base_points[0]**2*(target_quad-input[:,1]) )**2
         for theta_base in self.base_points[1:]: #two base-points: 1,2

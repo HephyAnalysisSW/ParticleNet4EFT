@@ -250,20 +250,19 @@ def train_load(args):
     train_label_names = train_data.config.label_names
 
 
-    ### test for nans, number of batches
-    # from tqdm import tqdm
-    # batches = 0
-    # total_nans = 0
-    # for batch in train_loader:
-    #     # batch_nans = torch.isnan(batch[0]['hl_features'])
-    #     # total_nans += batch_nans.sum()
-    #     print(batch[0]['hl_features'].size())
-    #     batches += 1
-    #     print(batches)
-    # print(f'# of batches: {batches}')
-    # print(f'batch size: {args.batch_size}')
-    # print(f'total # of nans: {total_nans}')
-    # quit()
+    #### test for nans, number of batches
+    #batches = 0
+    #total_nans = 0
+    #for batch in train_loader:
+    #    batch_nans = torch.isnan(batch[0]['global_features']).sum()
+    #    total_nans += batch_nans
+    #    print(batch[0]['global_features'].size(), "batch_nans", batch_nans)
+    #    batches += 1
+    #    print(batches)
+    #print(f'# of batches: {batches}')
+    #print(f'batch size: {args.batch_size}')
+    #print(f'total # of nans: {total_nans}')
+    #quit()
 
     return train_loader, val_loader, data_config, train_input_names, train_label_names
 

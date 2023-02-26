@@ -26,13 +26,14 @@ inputs:
       length: 1
       vars:
          - parton_lepTop_pt
-#         - parton_lepTop_eta
+         - parton_lepTop_eta
          - parton_lepTop_phi
-         - parton_lepTop_lep_pt
-         - parton_lepTop_lep_eta
-         - parton_lepTop_lep_phi
-         - parton_lepTop_nu_pt
-         - parton_lepTop_nu_phi
+         - parton_lep_pt
+         - parton_lep_eta
+         - parton_lep_phi
+         - parton_nu_pt
+#         - parton_nu_eta
+         - parton_nu_phi
          - parton_lepTop_b_pt
          - parton_lepTop_b_eta
          - parton_lepTop_b_phi
@@ -43,7 +44,7 @@ inputs:
          - delphesJet_pt
          - delphesJet_eta
          - delphesJet_phi
-#         - delphesJet_nConstituents
+         - delphesJet_nConstituents
          - delphesJet_SDmass
          - delphesJet_SDsubjet0_deltaEta
          - delphesJet_SDsubjet0_deltaPhi
@@ -132,7 +133,7 @@ labels:
       # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        ctWIm_coeffs : ctWIm_coeff
+        ctGIm_coeffs : ctGIm_coeff
 
 observers:
    - genJet_pt

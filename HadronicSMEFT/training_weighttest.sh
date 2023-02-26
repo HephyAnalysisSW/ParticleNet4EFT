@@ -9,4 +9,4 @@ python train.py \
     --regression-mode\
     --weighting\
     --tensorboard test\
-    --gpus 0
+    --gpus ""
