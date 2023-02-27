@@ -120,6 +120,66 @@ class EdgeConvBlock(nn.Module):
         return self.sc_act(sc + fts)  # (N, C_out, P)
 
 
+class FusionBlock(nn.Module):
+    def __init__(self, in_chn, out_chn) -> None:
+        super().__init__()
+        self.fusion_block = nn.Sequential(
+            nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
+            nn.BatchNorm1d(out_chn),
+            nn.ReLU(),
+            )
+        self.out_chn = out_chn
+
+    def forward(self, x):
+        return self.fusion_block(x)
+
+
+class DgnnBlock(nn.Module):
+    def __init__(self, input_dims, conv_params, use_fusion, for_inference) -> None:
+        super().__init__()
+        # EdgeConvs
+        self.edge_convs = nn.ModuleList()
+        for idx, layer_param in enumerate(conv_params):
+            k, channels = layer_param
+            in_feat = input_dims if idx == 0 else conv_params[idx - 1][1][-1]
+            self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, cpu_mode=for_inference))
+        # Fusion block
+        self.use_fusion = use_fusion
+        if self.use_fusion:
+            in_chn = sum(x[-1] for _, x in conv_params)
+            out_chn = np.clip((in_chn // 128) * 128, 128, 1024)         # enforce min 128 max 1024 out ch for fusion layer, use multiples of 128
+            self.fusion_block = FusionBlock(in_chn, out_chn)
+            self.out_chn = out_chn
+        else:
+            self.out_chn = conv_params[-1][1][-1]
+        
+    def forward(self, pts, fts, mask):
+        coord_shift = (mask == 0) * 1e9
+        outputs = []
+        for idx, conv in enumerate(self.edge_convs):
+            pts = (pts if idx == 0 else fts) + coord_shift
+            fts = conv(pts, fts) * mask
+            if self.use_fusion:
+                outputs.append(fts)
+        if self.use_fusion:
+            fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
+        return fts
+
+
+class GlobalAveragePooling(nn.Module):
+    def __init__(self, use_counts) -> None:
+        super().__init__()
+        self.use_counts = use_counts
+
+    def forward(self, input, mask=None):
+        if self.use_counts:
+            counts = mask.float().sum(dim=-1)
+            counts = torch.max(counts, torch.ones_like(counts))  # >=1
+            return input.sum(dim=-1) / counts
+        else:
+            return input.mean(dim=-1)
+
+
 class ParticleNet(nn.Module):
 
     def __init__(self,
@@ -127,106 +187,133 @@ class ParticleNet(nn.Module):
                  global_dims,
                  num_classes,
                  conv_params=[(7, (32, 32, 32)), (7, (64, 64, 64))],
-                 fc_params=[(128, 0.1)],
+                 pnet_fc_params=[(128, 0.1)],
+                 freeze_pnet: bool = False,
+                 globals_fc_params=[(128, 0.1)],
+                 freeze_global_fc: bool = False,
+                 joined_fc_params=[(128, 0.1)],
                  use_fusion=True,
                  use_fts_bn=True,
                  use_counts=True,
                  for_inference=False,
-                 for_segmentation=False,
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
 
         self.use_fts_bn = use_fts_bn
-        if self.use_fts_bn:
-            self.bn_fts = nn.BatchNorm1d(input_dims)
+        self.bn_fts = nn.BatchNorm1d(input_dims) if self.use_fts_bn else None
 
-        self.use_counts = use_counts
-
-        self.edge_convs = nn.ModuleList()
-        for idx, layer_param in enumerate(conv_params):
-            k, channels = layer_param
-            in_feat = input_dims if idx == 0 else conv_params[idx - 1][1][-1]
-            self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, cpu_mode=for_inference))
-
+        # Dgnn block
         self.use_fusion = use_fusion
-        if self.use_fusion:
-            in_chn = sum(x[-1] for _, x in conv_params)
-            out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
-            self.fusion_block = nn.Sequential(nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False), nn.BatchNorm1d(out_chn), nn.ReLU())
+        self.for_inference = for_inference
+        self.dgnn_block = DgnnBlock(input_dims, conv_params, self.use_fusion, self.for_inference)
 
-        self.for_segmentation = for_segmentation
+        # global averaging layer
+        self.use_counts = use_counts
+        self.global_average_pooling = GlobalAveragePooling(self.use_counts)
 
-        fcs = []
-        for idx, layer_param in enumerate(fc_params):
+        # ParticleNet fully connected layers
+        self.freeze_pnet = freeze_pnet
+        pnet_fc=[]
+        for idx, layer_param in enumerate(pnet_fc_params):
             channels, drop_rate = layer_param
             if idx == 0:
-                in_chn = out_chn if self.use_fusion else conv_params[-1][1][-1]
+                in_chn = self.dgnn_block.out_chn
             else:
-                in_chn = fc_params[idx - 1][0]
-            if self.for_segmentation:
-                fcs.append(nn.Sequential(nn.Conv1d(in_chn, channels, kernel_size=1, bias=False),
-                                         nn.BatchNorm1d(channels), nn.ReLU(), nn.Dropout(drop_rate)))
+                in_chn = pnet_fc_params[idx - 1][0]
+            pnet_fc.append(nn.Sequential(
+                nn.Linear(in_chn, channels),
+                nn.BatchNorm1d(channels),
+                nn.ReLU(),
+                nn.Dropout(drop_rate)
+                ))
+        self.pnet_fc = nn.Sequential(*pnet_fc)
+
+        # freeze all the layers belonging to the gnn part of ParticleNet
+        if self.freeze_pnet:
+            if self.use_fts_bn:
+                self.bn_fts.requires_grad_(False)
+            self.dgnn_block.requires_grad_(False)
+            self.global_average_pooling.requires_grad_(False)
+            self.pnet_fc.requires_grad_(False)
+
+        # Global features fully connected layers
+        self.freeze_global_fc = freeze_global_fc  
+        globals_fc=[]
+        globals_fc.append(nn.Flatten(start_dim=-2))
+        for idx, layer_param in enumerate(globals_fc_params):
+            channels, drop_rate = layer_param
+            if idx == 0:
+                in_chn = global_dims
             else:
-                fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+                in_chn = globals_fc_params[idx - 1][0]
+            globals_fc.append(nn.Sequential(
+                nn.Linear(in_chn, channels),
+                nn.BatchNorm1d(channels),
+                nn.ReLU(),
+                nn.Dropout(drop_rate)
+                ))
+        self.globals_fc = nn.Sequential(*globals_fc)
 
-        fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]+global_dims), nn.ReLU(), nn.Dropout(fc_params[-1][1]))) #add additional layer for adding global features
-        fcs.append(nn.Sequential(nn.Linear(fc_params[-1][0]+global_dims, fc_params[-1][0]), nn.ReLU(), nn.Dropout(fc_params[-1][1])))
+        # freeze the global features fc layers
+        if self.freeze_global_fc:
+            self.globals_fc.requires_grad_(False)
 
-        if self.for_segmentation:
-            fcs.append(nn.Conv1d(fc_params[-1][0], num_classes, kernel_size=1))
-        else:
-            fcs.append(nn.Linear(fc_params[-1][0], num_classes))
-        self.fc = nn.Sequential(*fcs)
+        # joined fully connected layers
+        joined_fc=[]
+        for idx, layer_param in enumerate(joined_fc_params):
+            channels, drop_rate = layer_param
+            if idx == 0:
+                in_chn = pnet_fc_params[-1][0] + globals_fc_params[-1][0]
+            else:
+                in_chn = joined_fc_params[idx - 1][0]
+            joined_fc.append(nn.Sequential(
+                nn.Linear(in_chn, channels),
+                nn.BatchNorm1d(channels),
+                nn.ReLU(),
+                nn.Dropout(drop_rate)
+                ))
+        joined_fc.append(nn.Sequential(
+                nn.Linear(joined_fc_params[-1][0], num_classes),
+                nn.BatchNorm1d(num_classes),
+                nn.ReLU(),
+                nn.Dropout(joined_fc_params[-1][1])
+                ))
+        self.joined_fc = nn.Sequential(*joined_fc)
 
-        self.for_inference = for_inference
 
     def forward(self, points, features, global_features, mask=None):
-#         print('points:\n', points)
-#         print('features:\n', features)
         if mask is None:
             mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
         points *= mask
         features *= mask
-        coord_shift = (mask == 0) * 1e9
-        if self.use_counts:
-            counts = mask.float().sum(dim=-1)
-            counts = torch.max(counts, torch.ones_like(counts))  # >=1
+
+        # if self.use_counts:
+        #     counts = mask.float().sum(dim=-1)
+        #     counts = torch.max(counts, torch.ones_like(counts))  # >=1
 
         if self.use_fts_bn:
-            fts = self.bn_fts(features) * mask
-        else:
-            fts = features
-        outputs = []
-        for idx, conv in enumerate(self.edge_convs):
-            pts = (points if idx == 0 else fts) + coord_shift
-            fts = conv(pts, fts) * mask
-            if self.use_fusion:
-                outputs.append(fts)
-        if self.use_fusion:
-            fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
+            features = self.bn_fts(features) * mask
 
-#         assert(((fts.abs().sum(dim=1, keepdim=True) != 0).float() - mask.float()).abs().sum().item() == 0)
-        
-        if self.for_segmentation:
-            x = fts
-        else:
-            if self.use_counts:
-                x = fts.sum(dim=-1) / counts  # divide by the real counts
-            else:
-                x = fts.mean(dim=-1)
+        # Dgnn layers
+        particle_fts = self.dgnn_block(points, features, mask)
 
-        #output = self.fc(x)
-        for idx, layer in enumerate(self.fc):
-            if idx == 1:
-                x = layer(torch.cat((x, global_features.sum(dim=-1)), dim=1)) #add lepton features
-            else:            
-                x = layer(x)
-        output = x
+        # global average pooling
+        particle_fts = self.global_average_pooling(particle_fts, mask if self.use_counts else None)
 
+        # pnet_fc
+        particle_fts = self.pnet_fc(particle_fts)
+
+        # globals_fc
+        global_fts = self.globals_fc(global_features)
+
+        # joined_fc
+        output = self.joined_fc(
+            torch.cat([particle_fts, global_fts], dim=-1)
+            )
 
         if self.for_inference:
             output = torch.softmax(output, dim=1)
-        # print('output:\n', output)
+
         return output
 
 
@@ -252,7 +339,11 @@ class ParticleNetTagger(nn.Module):
                  global_features_dims,
                  num_classes,
                  conv_params=[(7, (32, 32, 32)), (7, (64, 64, 64))],
-                 fc_params=[(128, 0.1)],
+                 pnet_fc_params=[(128, 0.1)],
+                 freeze_pnet: bool = False,
+                 globals_fc_params=[(128, 0.1)],
+                 freeze_global_fc: bool = False,
+                 joined_fc_params=[(128, 0.1)],
                  use_fusion=True,
                  use_fts_bn=True,
                  use_counts=True,
@@ -264,13 +355,15 @@ class ParticleNetTagger(nn.Module):
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
         self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
         self.constituents_conv = FeatureConv(constituents_features_dims, 32)
-        # self.global_conv = FeatureConv(global_features_dims, 64) #FIXME should be removed!
-        self.global_batchnorm = nn.BatchNorm1d(global_features_dims)
         self.pn = ParticleNet(input_dims=32,
-                              global_dims=global_features_dims, #64,
+                              global_dims=global_features_dims,
                               num_classes=num_classes,
                               conv_params=conv_params,
-                              fc_params=fc_params,
+                              pnet_fc_params=pnet_fc_params,
+                              freeze_pnet=freeze_pnet,
+                              globals_fc_params=globals_fc_params,
+                              freeze_global_fc=freeze_global_fc,
+                              joined_fc_params=joined_fc_params,
                               use_fusion=use_fusion,
                               use_fts_bn=use_fts_bn,
                               use_counts=use_counts,
@@ -282,9 +375,8 @@ class ParticleNetTagger(nn.Module):
             constituents_points *= constituents_mask
             constituents_features *= constituents_mask
 
-        points   = constituents_points #torch.cat((constituents_points, neh_points, el_points, mu_points, ph_points), dim=2)
-        features = self.constituents_conv(constituents_features * constituents_mask) * constituents_mask# torch.cat((self.chh_conv(chh_features * chh_mask) * chh_mask, self.neh_conv(neh_features * neh_mask) * neh_mask, self.el_conv(el_features * el_mask) * el_mask, self.mu_conv(mu_features * mu_mask) * mu_mask, self.ph_conv(ph_features * ph_mask) * ph_mask), dim=2)
-        # global_features = self.global_conv(global_features)
-        global_features = self.global_batchnorm(global_features)
-        mask = constituents_mask #torch.cat((chh_mask, neh_mask, el_mask, mu_mask, ph_mask), dim=2)
+        points = constituents_points
+        features = self.constituents_conv(constituents_features * constituents_mask) * constituents_mask
+        # torch.cat((self.chh_conv(chh_features * chh_mask) * chh_mask, self.neh_conv(neh_features * neh_mask) * neh_mask, self.el_conv(el_features * el_mask) * el_mask, self.mu_conv(mu_features * mu_mask) * mu_mask, self.ph_conv(ph_features * ph_mask) * ph_mask), dim=2)
+        mask = constituents_mask
         return self.pn(points, features, global_features, mask)
