@@ -338,6 +338,8 @@ class ParticleNetTagger(nn.Module):
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
         self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
         self.constituents_conv = FeatureConv(constituents_features_dims, 32)
+        if freeze_pnet:
+            self.constituents_conv.requires_grad_(False)
         self.pn = ParticleNet(input_dims=32,
                               global_dims=global_features_dims,
                               num_classes=num_classes,
