@@ -135,8 +135,11 @@ class FusionBlock(nn.Module):
 
 
 class DgnnBlock(nn.Module):
-    def __init__(self, input_dims, conv_params, use_fusion, for_inference) -> None:
+    def __init__(self, input_dims, conv_params, use_fts_bn, use_fusion, for_inference) -> None:
         super().__init__()
+        # fts batchnorm
+        self.use_fts_bn = use_fts_bn
+        self.bn_fts = nn.BatchNorm1d(input_dims) if self.use_fts_bn else None
         # EdgeConvs
         self.edge_convs = nn.ModuleList()
         for idx, layer_param in enumerate(conv_params):
@@ -153,7 +156,16 @@ class DgnnBlock(nn.Module):
         else:
             self.out_chn = conv_params[-1][1][-1]
         
-    def forward(self, pts, fts, mask):
+    def forward(self, pts, fts, mask=None):
+        if mask is None:
+            mask = (fts.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
+
+        pts *= mask
+        fts *= mask
+
+        if self.use_fts_bn:
+            fts = self.bn_fts(fts) * mask
+
         coord_shift = (mask == 0) * 1e9
         outputs = []
         for idx, conv in enumerate(self.edge_convs):
@@ -163,7 +175,38 @@ class DgnnBlock(nn.Module):
                 outputs.append(fts)
         if self.use_fusion:
             fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
+
         return fts
+    
+
+class FullyConnectedBlock(nn.Module):
+    def __init__(self,
+                 in_chn: int,
+                 layer_params: list[tuple[int,float]] = None,
+                 out_chn: tuple[int,float] | int = None,            # maybe change to only int
+                 input_transform: nn.Module = None) -> None:
+        super().__init__()
+        self.layer_params = layer_params if layer_params is not None else []
+        if type(out_chn) is tuple: self.layer_params.append(out_chn)
+        if type(out_chn) is int: self.layer_params.append((out_chn, 0.0))           # set dropout to zero if out chn given as int
+        self.out_chn = self.layer_params[-1][0] if self.layer_params else in_chn
+
+        layers = []
+        ch_params = [(in_chn, None)] + self.layer_params
+        for (in_ch,_), (out_ch, drop_rate) in zip(ch_params[:-1], ch_params[1:]):
+            layers.append(nn.Sequential(
+                nn.Linear(in_ch, out_ch),
+                nn.BatchNorm1d(out_ch),
+                nn.ReLU(),
+                nn.Dropout(drop_rate)
+            ))
+        if input_transform is not None:
+            layers.insert(0, input_transform)
+        
+        self.fc_block = nn.Sequential(*layers)
+
+    def forward(self, input):
+        return self.fc_block(input)
 
 
 class GlobalAveragePooling(nn.Module):
@@ -199,13 +242,11 @@ class ParticleNet(nn.Module):
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
 
-        self.use_fts_bn = use_fts_bn
-        self.bn_fts = nn.BatchNorm1d(input_dims) if self.use_fts_bn else None
-
         # Dgnn block
+        self.use_fts_bn = use_fts_bn
         self.use_fusion = use_fusion
         self.for_inference = for_inference
-        self.dgnn_block = DgnnBlock(input_dims, conv_params, self.use_fusion, self.for_inference)
+        self.dgnn_block = DgnnBlock(input_dims, conv_params, self.use_fts_bn, self.use_fusion, self.for_inference)
 
         # global averaging layer
         self.use_counts = use_counts
@@ -213,88 +254,30 @@ class ParticleNet(nn.Module):
 
         # ParticleNet fully connected layers
         self.freeze_pnet = freeze_pnet
-        pnet_fc=[]
-        for idx, layer_param in enumerate(pnet_fc_params):
-            channels, drop_rate = layer_param
-            if idx == 0:
-                in_chn = self.dgnn_block.out_chn
-            else:
-                in_chn = pnet_fc_params[idx - 1][0]
-            pnet_fc.append(nn.Sequential(
-                nn.Linear(in_chn, channels),
-                nn.BatchNorm1d(channels),
-                nn.ReLU(),
-                nn.Dropout(drop_rate)
-                ))
-        self.pnet_fc = nn.Sequential(*pnet_fc)
+        self.pnet_fc = FullyConnectedBlock(self.dgnn_block.out_chn, pnet_fc_params)
 
         # freeze all the layers belonging to the gnn part of ParticleNet
         if self.freeze_pnet:
-            if self.use_fts_bn:
-                self.bn_fts.requires_grad_(False)
             self.dgnn_block.requires_grad_(False)
             self.global_average_pooling.requires_grad_(False)
             self.pnet_fc.requires_grad_(False)
 
         # Global features fully connected layers
-        self.freeze_global_fc = freeze_global_fc  
-        globals_fc=[]
-        globals_fc.append(nn.Flatten(start_dim=-2))
-        for idx, layer_param in enumerate(globals_fc_params):
-            channels, drop_rate = layer_param
-            if idx == 0:
-                in_chn = global_dims
-            else:
-                in_chn = globals_fc_params[idx - 1][0]
-            globals_fc.append(nn.Sequential(
-                nn.Linear(in_chn, channels),
-                nn.BatchNorm1d(channels),
-                nn.ReLU(),
-                nn.Dropout(drop_rate)
-                ))
-        self.globals_fc = nn.Sequential(*globals_fc)
-
+        self.freeze_global_fc = freeze_global_fc
+        self.globals_fc = FullyConnectedBlock(global_dims, globals_fc_params,
+                                               input_transform=nn.Flatten(start_dim=-2))    # (N,C,1) -> (N,D)
         # freeze the global features fc layers
         if self.freeze_global_fc:
             self.globals_fc.requires_grad_(False)
 
         # joined fully connected layers
-        joined_fc=[]
-        for idx, layer_param in enumerate(joined_fc_params):
-            channels, drop_rate = layer_param
-            if idx == 0:
-                in_chn = pnet_fc_params[-1][0] + globals_fc_params[-1][0]
-            else:
-                in_chn = joined_fc_params[idx - 1][0]
-            joined_fc.append(nn.Sequential(
-                nn.Linear(in_chn, channels),
-                nn.BatchNorm1d(channels),
-                nn.ReLU(),
-                nn.Dropout(drop_rate)
-                ))
-        joined_fc.append(nn.Sequential(
-                nn.Linear(joined_fc_params[-1][0], num_classes),
-                nn.BatchNorm1d(num_classes),
-                nn.ReLU(),
-                nn.Dropout(joined_fc_params[-1][1])
-                ))
-        self.joined_fc = nn.Sequential(*joined_fc)
+        joined_in_ch = self.pnet_fc.out_chn + self.globals_fc.out_chn
+        self.joined_fc = FullyConnectedBlock(joined_in_ch, joined_fc_params, num_classes)
 
 
     def forward(self, points, features, global_features, mask=None):
-        if mask is None:
-            mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
-        points *= mask
-        features *= mask
 
-        # if self.use_counts:
-        #     counts = mask.float().sum(dim=-1)
-        #     counts = torch.max(counts, torch.ones_like(counts))  # >=1
-
-        if self.use_fts_bn:
-            features = self.bn_fts(features) * mask
-
-        # Dgnn layers
+        # Dgnn layers including fts_bn and masking
         particle_fts = self.dgnn_block(points, features, mask)
 
         # global average pooling
