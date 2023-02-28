@@ -130,6 +130,8 @@ parser.add_argument('--profile', action='store_true', default=False,
                     help='run the profiler')
 parser.add_argument('--backend', type=str, choices=['gloo', 'nccl', 'mpi'], default=None,
                     help='backend for distributed training')
+parser.add_argument('--model-directory', type=str, default=None,
+                    help='save model to this dir')                    
 
 
 def to_filelist(args, mode='train'):
@@ -330,18 +332,21 @@ def onnx(args, model, data_config, model_info):
     assert (args.export_onnx.endswith('.onnx'))
     model_path = args.model_prefix
     _logger.info('Exporting model %s to ONNX' % model_path)
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
+    model = torch.load(args.model_prefix + '_best_epoch_full.pt')
+    # model.load_state_dict(torch.load(args.model_prefix + '_best_epoch_full.pt'))#, map_location='cpu'))
+    #model.load_state_dict(torch.load('ctt_lin_quad_test_best_epoch_full.pt'))
     model = model.cpu()
     model.eval()
 
-    os.makedirs(os.path.dirname(args.export_onnx), exist_ok=True)
+    #os.makedirs(os.path.dirname(args.export_onnx), exist_ok=True)
     inputs = tuple(
         torch.ones(model_info['input_shapes'][k], dtype=torch.float32) for k in model_info['input_names'])
-    torch.onnx.export(model, inputs, args.export_onnx,
+    torch.onnx.export(model, inputs, os.path.join(args.model_directory,args.model_prefix+'_'+args.export_onnx),
                       input_names=model_info['input_names'],
                       output_names=model_info['output_names'],
                       dynamic_axes=model_info.get('dynamic_axes', None),
                       opset_version=13)
+        
     _logger.info('ONNX model saved to %s', args.export_onnx)
 
     preprocessing_json = os.path.join(os.path.dirname(args.export_onnx), 'preprocess.json')
