@@ -92,6 +92,10 @@ DATA_CONFIG='data/delphes_hl_features_lin.yaml'
 # --in-memory \
 # --steps-per-epoch 1
 
+pwd
+cd ..
+pwd
+
 # === weighted particle net ===
 
 python train.py \
@@ -99,17 +103,41 @@ python train.py \
 '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_70.root' \
 --data-test \
 '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_71.root' \
---data-config 'TopDecay/data/ak8_points_pf_full_weighttest.yaml' \
---network-config 'TopDecay/networks/particleNet_AK8_LikelihoodFree.py' \
---model-prefix 'TopDecay/ParticleNet_weighted_test_visualization/pNet' \
+--data-config 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml' \
+--network-config 'TopDecay/networks/ParticleNet/test_pnet.py' \
+--model-prefix 'models/frozen_globals/model' \
 --batch-size 100 \
 --lr-scheduler none \
 --start-lr 5e-3 \
 --num-epochs 1 \
 --optimizer ranger \
 --regression-mode \
---gpus 0 \
+--gpus '' \
 --weighting \
 --fetch-by-files \
 --fetch-step 10 \
---tensorboard pNet_visualization \
+--network-option 'freeze_global_fc' 'True' \
+--tensorboard 'frozen_globals'
+
+# --load-model-weights 'models/frozen_pnet/model_epoch-0_state.pt' \
+
+### === MLP ===
+# python train.py \
+# --data-train \
+# '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[1-8]?.root' \
+# --data-test \
+# '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_71.root' \
+# --data-config 'TopDecay/data/delphes_hl_features_full.yaml' \
+# --network-config 'TopDecay/networks/DNN/layers_300_300_300_100.py' \
+# --model-prefix 'TopDecay/test_MLP/model' \
+# --batch-size 100 \
+# --lr-scheduler none \
+# --start-lr 5e-3 \
+# --num-epochs 1 \
+# --optimizer ranger \
+# --regression-mode \
+# --gpus 0 \
+# --weighting \
+# --fetch-by-files \
+# --fetch-step 10 \
+# --tensorboard 'pnet_test'
