@@ -242,6 +242,8 @@ class ParticleNet(nn.Module):
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
 
+        assert not (freeze_pnet and freeze_global_fc), "Can only freeze either gnn OR global dnn part."
+
         # Dgnn block
         self.use_fts_bn = use_fts_bn
         self.use_fusion = use_fusion
@@ -275,7 +277,53 @@ class ParticleNet(nn.Module):
         self.joined_fc = FullyConnectedBlock(joined_in_ch, joined_fc_params, num_classes)
 
 
+    def _forward_global_fc_only(self, global_features):
+
+        # globals_fc
+        global_fts = self.globals_fc(global_features)
+
+        # make dummy pnet output for joined fc
+        batch_size = global_fts.size()[0]
+        dummy_pnet_output = torch.randn(batch_size, self.pnet_fc.out_chn)
+
+        # joined_fc
+        output = self.joined_fc(
+            torch.cat([dummy_pnet_output, global_fts], dim=-1)
+            )
+        
+        return output
+
+
+    def _forward_pnet_only(self, points, features, global_features, mask=None):
+
+         # Dgnn layers including fts_bn and masking
+        particle_fts = self.dgnn_block(points, features, mask)
+
+        # global average pooling
+        particle_fts = self.global_average_pooling(particle_fts, mask if self.use_counts else None)
+
+        # pnet_fc
+        particle_fts = self.pnet_fc(particle_fts)
+
+        # make dummy global fc output
+        batch_size = global_features.size()[0]
+        dummy_global_fc_output = torch.randn(batch_size, self.globals_fc.out_chn)
+
+        # joined_fc
+        output = self.joined_fc(
+            torch.cat([particle_fts, dummy_global_fc_output], dim=-1)
+            )
+        
+        return output
+        
+
     def forward(self, points, features, global_features, mask=None):
+
+        if self.freeze_pnet:
+            return self._forward_global_fc_only(global_features)
+        
+        if self.freeze_global_fc:
+            return self._forward_pnet_only(points, features, global_features, mask)
 
         # Dgnn layers including fts_bn and masking
         particle_fts = self.dgnn_block(points, features, mask)
@@ -338,8 +386,11 @@ class ParticleNetTagger(nn.Module):
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
         self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
         self.constituents_conv = FeatureConv(constituents_features_dims, 32)
-        if freeze_pnet:
+
+        self.freeze_pnet = freeze_pnet
+        if self.freeze_pnet:
             self.constituents_conv.requires_grad_(False)
+        
         self.pn = ParticleNet(input_dims=32,
                               global_dims=global_features_dims,
                               num_classes=num_classes,
@@ -355,6 +406,9 @@ class ParticleNetTagger(nn.Module):
                               for_inference=for_inference)
 
     def forward(self, global_features, constituents_points, constituents_features, constituents_mask ):
+        if self.freeze_pnet:
+            return self.pn(None, None, global_features, None)
+        
         if self.constituents_input_dropout:
             constituents_mask = (self.constituents_input_dropout(constituents_mask) != 0).float()
             constituents_points *= constituents_mask
