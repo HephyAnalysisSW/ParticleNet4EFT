@@ -5,14 +5,15 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (8, (32, 32, 32)),
-        (8, (64, 64, 64)),
+        (16, (64, 64, 64)),
+        (16, (128, 128, 128)),
+        (16, (256, 256, 256)),
         ]
-    fc_params = [
-        (256, 0.1),
-        (128, 0.1),
-        (128, 0.1),
-        ]
+    pnet_fc_params = [(512, 0.1), (256, 0.1)]
+    freeze_pnet = True
+    globals_fc_params = [(300, 0.1), (300, 0.1), (300, 0.1), (300, 0.1)]
+    freeze_global_fc = False
+    joined_fc_params = None #[(64, 0.1), (128,0.1)]
     use_fusion = True
 
     eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
@@ -20,7 +21,12 @@ def get_model(data_config, **kwargs):
     # training linear and quadratic together:
     num_classes = 2 #len(data_config.label_value)
     model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
-                              conv_params, fc_params,
+                              conv_params=conv_params,
+                              pnet_fc_params=pnet_fc_params,
+                              freeze_pnet=kwargs.get('freeze_pnet', False),
+                              globals_fc_params=globals_fc_params,
+                              freeze_global_fc=kwargs.get('freeze_global_fc', False),
+                              joined_fc_params=joined_fc_params,
                               use_fusion=use_fusion,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
                               use_counts=kwargs.get('use_counts', True),
