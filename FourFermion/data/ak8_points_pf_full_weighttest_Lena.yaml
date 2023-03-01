@@ -9,11 +9,13 @@ test_time_selection:
    ### selection to apply at test time (i.e., when running w/ --predict)
    #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
    #(genJet_pt>500) & (genJet_SDmass>0) & (np.abs(dR_genJet_maxq1q2b)<0.6) & (genJet_SDsubjet1_mass>=0)
-
+   (l1_pt>20) & (l2_pt>20) & (np.abs(l1_eta)<2.4) & (np.abs(l2_eta)<2.4) & (nrecoJet>3) & (met_pt>30) & (bjet0_pt>30) & (bjet1_pt>30) #(nBTag>1)
+   
+   
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   #eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
+   eflow_const_mask: awkward.JaggedArray.ones_like(mva_Jet_eta)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -70,19 +72,19 @@ inputs:
    constituents_points:
       length: 10
       vars: 
-         - recoJet_eta
-         - recoJet_phi
+         - mva_Jet_eta
+         - mva_Jet_phi
    eflow_features:
       length: 10
       vars: 
-         - recoJet_pt
-         - recoJet_eta
-         - recoJet_phi
-         - recoJet_bTag
+         - mva_Jet_pt
+         - mva_Jet_eta
+         - mva_Jet_phi
+         - mva_Jet_bTag
    eflow_mask:
       length: 10
       vars: 
-         - recoJet_pt
+         - eflow_const_mask
 
 labels:
    ### type can be `simple`, `custom`
@@ -96,5 +98,43 @@ labels:
         ctt_coeffs : ctt_coeff
 
 observers:
-
-
+    - nrecoJet 
+    - mT_l1    
+    - mT_l2    
+    - ml_12    
+    - l1_pt    
+    - l1_eta   
+    - l2_pt    
+    - l2_eta 
+    - met_pt
+    - mj_12    
+    - mlj_11   
+    - mlj_12   
+    - dPhil_12 
+    - dPhij_12 
+    - dEtal_12 
+    - dEtaj_12 
+    - ht       
+    - htb      
+    - ht_ratio 
+    - jet0_pt  
+    - jet0_eta 
+    - jet1_pt  
+    - jet1_eta 
+    - jet2_pt  
+    - jet2_eta 
+    - jet3_pt  
+    - jet4_pt  
+    - jet5_pt  
+    - jet6_pt  
+    - jet7_pt  
+    - bjet0_pt 
+    - bjet1_pt 
+    - m_4b     
+    - dR_min0  
+    - dR_min1  
+    - min_dR_bb
+    - dR_2l    
+    - mt2ll    
+    - mt2bb    
+    - mt2blbl  

@@ -4,11 +4,11 @@ from torch import Tensor
 import math
 
 def get_model(data_config, **kwargs):
-    conv_params =  [(3, (300,300,300))] # Note to myself: first parameter in conv_params is (probably) the number of connected neighbours
+    conv_params =  [(5, (300,300,300))]         # Note to myself: first parameter in conv_params is (probably) the number of connected neighbours
     fc_params = [(15, 0.0), (2, 0.0)]           # fully connected layer (hidden_size, drop_out) after GNN for array based input
-    fc_global_params = [(80, 0.0),(12, 0.0)]   # fully connected layer (hidden_size, drop_out) for global features only
-    fc_combined_params = [(5,0.0)] # fully connected layer (hidden_size, drop_out) for combined input from fc and fc_global
-    use_fusion = False
+    fc_global_params = [(80, 0.0),(45, 0.0)]    # fully connected layer (hidden_size, drop_out) for global features only
+    fc_combined_params = [(5,0.0)]              # fully connected layer (hidden_size, drop_out) for combined input from fc and fc_global
+    use_fusion = True
     
     eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
