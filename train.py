@@ -487,10 +487,10 @@ def optim(args, model, device):
                 load_file_name = max( files )
                 args.load_epoch = int(load_file_name.split('-')[-1].split('_')[0])
             else:
-                raise RuntimeError( "Could not load epoch %d"%args.load_epoch )
+                args.load_epoch = None
         else:
             load_file_name = args.model_prefix + '_epoch-%d_state.pt' % args.load_epoch
-
+    if args.load_epoch is not None:
         _logger.info('Resume training from %s' % load_file_name)
         model_state = torch.load(load_file_name, map_location=device)
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
