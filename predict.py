@@ -180,7 +180,12 @@ def save_root(args, output_path, data_config, scores, labels, observers):
     """
     from utils.data.fileio import _write_root
     output = {}
+    if labels[data_config.label_names[0]].ndim>1 and labels[data_config.label_names[0]].shape[1]!=1:
+        _logger.warning('Only first column of labels will be written! Vector-valued output not yet supported. Shape: (Nevents, Nvec) = %r', labels[data_config.label_names[0]].shape)
     output[data_config.label_names[0]] = labels[data_config.label_names[0]]
+
+    if scores.ndim>1 and scores.shape[1]!=1:
+        _logger.warning('Only first column of scores will be written! Vector-valued output not yet supported. Shape: (Nevents, Nvec) = %r', scores.shape)
     output['output'] = scores
     for k, v in labels.items():
         if k == data_config.label_names[0]:
@@ -191,8 +196,13 @@ def save_root(args, output_path, data_config, scores, labels, observers):
         output[k] = v
     for k, v in observers.items():
         if v.ndim > 1:
-            _logger.warning('Ignoring %s, not a 1d array.', k)
-            continue
+            # Robert: It is not clear why scalar observers come as [[...]], i.e., with shape (NEvents, 1). 
+            #         But we can just flatten.
+            if v.ndim==2 and v.shape[1]==1: 
+                output[k] = v.flatten()
+            else:
+                _logger.warning('Ignoring %s, not a 1d array. It has %i dimensions and shape (Nevents, Nvec) = %r', k, v.ndim, v.shape)
+                continue
         output[k] = v
     _write_root(output_path, output)
 
