@@ -332,7 +332,7 @@ def onnx(args, model, data_config, model_info):
     assert (args.export_onnx.endswith('.onnx'))
     model_path = args.model_prefix
     _logger.info('Exporting model %s to ONNX' % model_path)
-    model = torch.load(args.model_prefix + '_best_epoch_full.pt')
+    model = torch.load(args.model_prefix + '_best_epoch_full.pt', map_location=torch.device('cpu'))
     # model.load_state_dict(torch.load(args.model_prefix + '_best_epoch_full.pt'))#, map_location='cpu'))
     #model.load_state_dict(torch.load('ctt_lin_quad_test_best_epoch_full.pt'))
     model = model.cpu()
@@ -492,10 +492,10 @@ def optim(args, model, device):
                 load_file_name = max( files )
                 args.load_epoch = int(load_file_name.split('-')[-1].split('_')[0])
             else:
-                raise RuntimeError( "Could not load epoch %d"%args.load_epoch )
+                args.load_epoch = None
         else:
             load_file_name = args.model_prefix + '_epoch-%d_state.pt' % args.load_epoch
-
+    if args.load_epoch is not None:
         _logger.info('Resume training from %s' % load_file_name)
         model_state = torch.load(load_file_name, map_location=device)
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
@@ -842,8 +842,13 @@ def main(args):
                 gpus = None
                 dev = torch.device('cpu')
             model = orig_model.to(dev)
-            model_path = args.model_prefix if args.model_prefix.endswith(
-                '.pt') else args.model_prefix + '_best_epoch_state.pt'
+
+            if args.load_epoch is None:
+                model_path = args.model_prefix if args.model_prefix.endswith(
+                    '.pt') else args.model_prefix + '_best_epoch_state.pt'
+            else:
+                model_path = args.model_prefix if args.model_prefix.endswith(
+                    '.pt') else args.model_prefix + '_epoch-%d_state.pt'%args.load_epoch
             _logger.info('Loading model %s for eval' % model_path)
             model.load_state_dict(torch.load(model_path, map_location=dev))
             if gpus is not None and len(gpus) > 1:

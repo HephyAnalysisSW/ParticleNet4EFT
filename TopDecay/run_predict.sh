@@ -27,7 +27,7 @@
 
 # === delphes detector sim ===
 PATH_TO_DATA='/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v5/tschRefPointNoWidthRW/'
-DATA_CONFIG='data/delphes_hl_features_lin.yaml'
+DATA_CONFIG='TopDecay/data/delphes_hl_features_lin.yaml'
 
 
 # PATH_TO_DATA='/groups/hephy/cms/robert.schoefbeck/TMB/postprocessed/gen/v2/tschRefPointNoWidthRW/'
@@ -51,11 +51,11 @@ python train.py \
 --predict \
 --data-test ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
 --data-config ${DATA_CONFIG} \
---network-config 'networks/mlp_genjetAK8_lin.py'  \
---model-prefix models/mlp_hl_lin_delphes_test_1/mlp_epoch-${epoch}_state.pt \
+--network-config 'original/models/mlp_genjetAK8_lin.py'  \
+--model-prefix TopDecay/models/mlp_hl_lin_delphes_test_1/mlp_epoch-${epoch}_state.pt \
 --predict-output prediction_at_epoch_${epoch}.root \
 --regression-mode \
---gpus 0 
+--gpus "" 
 
  done
 
