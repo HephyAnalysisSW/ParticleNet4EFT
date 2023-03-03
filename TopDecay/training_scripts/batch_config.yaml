@@ -1,0 +1,51 @@
+sbatch_args:
+  --nodes: '1'
+  --cpus-per-task: '4'
+  --mem-per-cpu: 4G
+  --qos: short
+  --time: 08:00:00
+  -D: /users/oskar.rothbacher/CMS/ParticleNet4EFT/
+
+
+
+network_configs_const:
+  --data-train:
+    - '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_7*.root'
+  
+  --data-test:
+    - '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_8*.root'
+  
+  --network-config:
+    - 'TopDecay/networks/ParticleNet/test_pnet.py'
+
+  --regression-mode:
+    - ''
+
+  
+network_configs_var:
+
+  --model-prefix:
+    - 'models/pre_train_global_fc_1/model'
+    - 'models/pre_train_global_fc_2/model'
+    - 'models/pre_train_global_fc_3/model'
+
+  --batch-size:
+    - 100
+    - 200
+    - 300
+
+network_options:
+  freeze_pnet:
+    - 'True'
+    - 'False'
+    - 'True'
+
+  pnet_fc_params: 
+    - '[(32, 0.1)]'
+    - '[(32, 0.1), (64, 0.1)]'
+    - '[(32, 0.1), (128, 0.1)]'
+
+  globals_fc_params:
+    - '[(200, 0.1), (50, 0.1)]'
+    - '[(300, 0.1), (200, 0.1), (100, 0.1)]'
+    - '[(500, 0.1), (300, 0.1), (100, 0.1)]'

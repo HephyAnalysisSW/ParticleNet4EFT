@@ -1,4 +1,3 @@
-from audioop import lin2adpcm
 import sys
 
 sys.path.insert(0, "/users/oskar.rothbacher/CMS/ML-pytorch")
