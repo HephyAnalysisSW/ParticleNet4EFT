@@ -128,7 +128,7 @@ def _write_root4_define(table):
     new_tree = {}
     for k, v in table.items():
         if isinstance(v, np.ndarray):
-            t = v.dtype
+            t = str(v.dtype)
         else:
             t = f"var * {str(v.type).split()[-1]}"
         new_tree[k.decode("utf-8")] = t
@@ -138,7 +138,7 @@ def _write_root4_convert(table):
     new_tree = {}
     for k, v in table.items():
         if isinstance(v, np.ndarray):
-            v1 = v.dtype
+            v1 = v
         else:
             v1 = ak.Array(v)
         new_tree[k.decode("utf-8")] = v1
@@ -148,8 +148,8 @@ def _write_root4(file, table, treename='Events', compression=-1, step=1048576):
     if compression == -1:
         compression = uproot.LZ4(4)
     with uproot.recreate(file, compression=compression) as fout:
-        fout[treename] = uproot.newtree(_write_root4_define(table))
+        tree = fout.mktree(treename, _write_root4_define(table))
         start = 0
         while start < len(list(table.values())[0]) - 1:
-            fout[treename].extend(_write_root4_convert(table))
-            start += step 
+            tree.extend(_write_root4_convert(table))
+            start += step
