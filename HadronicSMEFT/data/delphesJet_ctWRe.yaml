@@ -132,7 +132,7 @@ labels:
       # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        ctWIm_coeffs : ctWIm_coeff
+        ctWRe_coeffs : ctWRe_coeff
 
 observers:
    - parton_lepTop_pt
