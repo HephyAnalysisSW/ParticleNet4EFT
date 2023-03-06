@@ -1,0 +1,1 @@
+python predict.py --gpus "" --data-test '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v9/TT01jDebug/TT01jDebug_*.root' --data-config HadronicSMEFT/data/delphesJet_ctGIm.yaml --predict-config HadronicSMEFT/predict/predict.yaml --predict-output /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/predictions/ctGIm/output.root #SPLIT199

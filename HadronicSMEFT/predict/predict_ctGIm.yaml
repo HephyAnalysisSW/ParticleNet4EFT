@@ -1,0 +1,10 @@
+ctGIm-global:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm/ctGIm
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py
+    epochs:
+        - best
+ctGIm-def:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm/ctGIm-def 
+    network-config: HadronicSMEFT/networks/ParticleNetDef_likelihoodFree.py  
+    epochs:
+        - best

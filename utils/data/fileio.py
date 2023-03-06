@@ -3,9 +3,11 @@ import tqdm
 import traceback
 from .tools import _concat
 from ..logger import _logger
-
+import awkward as ak
+import numpy as np
 try:
     import uproot3
+    #import uproot
 except ImportError:
     uproot3 = None
     import uproot
@@ -99,4 +101,55 @@ def _write_root(file, table, treename='Events', compression=-1, step=1048576):
         start = 0
         while start < len(list(table.values())[0]) - 1:
             fout[treename].extend({k:v[start:start + step] for k, v in table.items()})
+            start += step
+
+def _red( v ):
+    # 1D array -> scalar
+    if v.ndim == 1:
+        return v
+    # 2D array, but just one column -> scalar
+    elif (v.ndim==2 and v.shape[1]==1):
+        return v[:,0]
+    # 2D array -> vector
+    elif v.ndim==2:
+        return v
+    else:
+        raise RuntimeError("Can not write this shape: %r"%v.shape)
+
+def _write_root_ak( file, table, treename='Events' ):
+
+    if not len(set(list( map( len, table.values())))) == 1:
+        raise RuntimeError ("Branches have uneven length!: %r" % list( map( len, table.values())))
+
+    # based on https://awkward-array.org/doc/main/user-guide/how-to-convert-rdataframe.html
+    ak.to_rdataframe({k:ak.Array(_red(v)) for k, v in table.items()}).Snapshot( treename, file )
+
+def _write_root4_define(table):
+    new_tree = {}
+    for k, v in table.items():
+        if isinstance(v, np.ndarray):
+            t = str(v.dtype)
+        else:
+            t = f"var * {str(v.type).split()[-1]}"
+        new_tree[k.decode("utf-8")] = t
+    return new_tree
+
+def _write_root4_convert(table):
+    new_tree = {}
+    for k, v in table.items():
+        if isinstance(v, np.ndarray):
+            v1 = v
+        else:
+            v1 = ak.Array(v)
+        new_tree[k.decode("utf-8")] = v1
+    return new_tree
+
+def _write_root4(file, table, treename='Events', compression=-1, step=1048576):
+    if compression == -1:
+        compression = uproot.LZ4(4)
+    with uproot.recreate(file, compression=compression) as fout:
+        tree = fout.mktree(treename, _write_root4_define(table))
+        start = 0
+        while start < len(list(table.values())[0]) - 1:
+            tree.extend(_write_root4_convert(table))
             start += step

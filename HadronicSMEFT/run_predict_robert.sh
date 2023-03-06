@@ -1,1 +1,0 @@
-python train.py --predict --data-test '/scratch-cbe/users/robert.schoefbeck/TMB/postprocessed/gen/v3/tschRefPointNoWidthRW/tschRefPointNoWidthRW_2.root' --data-config data/genak8_points_pf_full_weighttest.yaml --network-config networks/particle_net_genjetAK8_weighttest.py  --model-prefix ctWRe_lin_quad --predict-output predict_output.root --regression-mode --gpus "" --weighting 
