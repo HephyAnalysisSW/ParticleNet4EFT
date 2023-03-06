@@ -100,9 +100,9 @@ pwd
 
 python train.py \
 --data-train \
-'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_70.root' \
+'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_7*.root' \
 --data-test \
-'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_71.root' \
+'/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_8*.root' \
 --data-config 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml' \
 --network-config 'TopDecay/networks/ParticleNet/test_pnet.py' \
 --model-prefix 'models/frozen_globals/model' \
@@ -116,8 +116,8 @@ python train.py \
 --weighting \
 --fetch-by-files \
 --fetch-step 10 \
---network-option 'freeze_global_fc' 'True' \
---tensorboard 'frozen_globals'
+--network-option 'freeze_pnet_fc' 'True' \
+--tensorboard 'runs/Mar02/test'
 
 # --load-model-weights 'models/frozen_pnet/model_epoch-0_state.pt' \
 
