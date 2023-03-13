@@ -196,21 +196,26 @@ observers:
    - delphesJet_ecfU2beta2
    - delphesJet_ecfU3beta2
    - p_C
-#weights:
-   #### [option 1] use precomputed weights stored in the input files
-   ## use_precomputed_weights: true
-   ## weight_branches: [weight, class_weight]
-   #### [option 2] compute weights on-the-fly using reweighting histograms
-   #use_precomputed_weights: false
-   #reweight_method: flat
-   #reweight_vars:
-   #   genJet_pt: [300, 500, 800, 10000] #251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
-   #   genJet_eta: [-10., 10.]
-   #reweight_classes: [
-   #   label_quad_0, label_quad_1, label_quad_2, label_quad_3
-   #   ]
-   #class_weights: [
-   #   1, 1, 1, 1
-   #   ]
-   #reweight_hists:
+   - parton_cosThetaPlus_n 
+   - parton_cosThetaMinus_n
+   - parton_cosThetaPlus_r 
+   - parton_cosThetaMinus_r
+   - parton_cosThetaPlus_k 
+   - parton_cosThetaMinus_k
+   - parton_cosThetaPlus_r_star
+   - parton_cosThetaMinus_r_star
+   - parton_cosThetaPlus_k_star
+   - parton_cosThetaMinus_k_star
+   - parton_xi_nn  
+   - parton_xi_rr  
+   - parton_xi_kk  
+   - parton_xi_nr_plus 
+   - parton_xi_nr_minus
+   - parton_xi_rk_plus 
+   - parton_xi_rk_minus
+   - parton_xi_nk_plus 
+   - parton_xi_nk_minus
+   - parton_cos_phi
+   - parton_cos_phi_lab
+   - parton_abs_delta_phi_ll_lab
 

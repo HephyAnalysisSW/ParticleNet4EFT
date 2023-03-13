@@ -133,6 +133,7 @@ class ParticleNet(nn.Module):
                  use_fusion=False,
                  use_fts_bn=True,
                  use_counts=True,
+                 batch_norm=True,
                  for_inference=False,
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
@@ -149,7 +150,7 @@ class ParticleNet(nn.Module):
         for idx, layer_param in enumerate(conv_params):
             k, channels = layer_param
             in_feat = input_dims if idx == 0 else conv_params[idx - 1][1][-1]
-            self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, cpu_mode=for_inference))
+            self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, batch_norm=batch_norm, cpu_mode=for_inference))
 
         self.use_fusion = use_fusion
         if self.use_fusion: # KEINE AHNUNG WAS DAS MACHT UND WARUM IST DAS HARDGECODED??
@@ -294,6 +295,7 @@ class ParticleNetTagger(nn.Module):
                  fc_global_params=None,
                  fc_combined_params=None,
                  use_fusion=True,
+                 batch_norm=True,
                  use_fts_bn=True,
                  use_counts=True,
                  constituents_input_dropout=None,
@@ -314,6 +316,7 @@ class ParticleNetTagger(nn.Module):
                               fc_global_params=fc_global_params,
                               fc_combined_params=fc_combined_params,
                               use_fusion=use_fusion,
+                              batch_norm=batch_norm,
                               use_fts_bn=use_fts_bn,
                               use_counts=use_counts,
                               for_inference=for_inference)

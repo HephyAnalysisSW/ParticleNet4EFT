@@ -479,6 +479,12 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             num_examples = label.shape[0]
             label = label.to(dev)
             opt.zero_grad()
+
+            #for i_input, input in enumerate(inputs):
+            #    if torch.any(torch.isnan(input)):
+            #        print( "First nan: input", i_input, "position", torch.isnan(input).numpy().index(i) ) 
+            #        raise RuntimeError("Found nan!!")
+
             with torch.cuda.amp.autocast(enabled=grad_scaler is not None):
                 model_output = model(*inputs)
                 preds = model_output.squeeze()
@@ -495,7 +501,6 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
                 scheduler.step()
 
             loss = loss.item()
-
             num_batches += 1
             count += num_examples
             total_loss += loss

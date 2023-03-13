@@ -78,6 +78,9 @@ def test_load(args):
     else:
         _logger.info( "Running over all %i files." % len(files) )
 
+    if len(files)==0:
+        raise RuntimeError( "No files selected!" )
+
     file_dict = {'': files }
 
     def get_test_loader(name):
