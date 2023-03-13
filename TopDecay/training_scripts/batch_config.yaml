@@ -7,45 +7,89 @@ sbatch_args:
   -D: /users/oskar.rothbacher/CMS/ParticleNet4EFT/
 
 
-
-network_configs_const:
+# these are the same for all scripts
+train_options_const:
   --data-train:
-    - '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_7*.root'
+    - '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[4-7]*.root'
   
   --data-test:
     - '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_8*.root'
   
+  --data-config:
+    - 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml'
+
   --network-config:
     - 'TopDecay/networks/ParticleNet/test_pnet.py'
 
   --regression-mode:
     - ''
-
+  --start-lr:
+    - 1e-4
+  --optimizer:
+    - ranger
+  --lr-scheduler:
+    - none
+  --weighting:
+    - ""
+  --gpus:
+    - 0
+  --fetch-by-files:
+    - ""
+  --fetch-step:
+    - 20
+  --num-workers:
+    - 3
   
-network_configs_var:
 
+# these vary by script   
+train_options_var:
+
+  # any occurence of 'auto' will be replaced by network options
   --model-prefix:
     - 'models/pre_train_global_fc_1/model'
-    - 'models/pre_train_global_fc_2/model'
-    - 'models/pre_train_global_fc_3/model'
+    # - 'models/pre_train_global_fc_2/model'
+    # - 'models/auto/model'
+
+  --num-epochs:
+    - 400
+    # - 400
+    # - 400
 
   --batch-size:
     - 100
-    - 200
-    - 300
+    # - 200
+    # - 300
+
+  --tensorboard:
+    - runs/test_pre_train/pre_train_global_fc_1
+    # - runs/test_pre_train/pre_train_global_fc_1
+    # - runs/test_pre_train/pre_train_global_fc_1
+
 
 network_options:
-  freeze_pnet:
-    - 'True'
-    - 'False'
-    - 'True'
+
+  conv_params:
+    - '[(4, (8,8,8)), (8, (16, 16, 16))]'
+    # - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    # - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
 
   pnet_fc_params: 
     - '[(32, 0.1)]'
-    - '[(32, 0.1), (64, 0.1)]'
-    - '[(32, 0.1), (128, 0.1)]'
+    # - '[(32, 0.1), (64, 0.1)]'
+    # - '[(32, 0.1), (128, 0.1)]'
+
+  freeze_pnet:
+    - 'True'
+    # - 'False'
+    # - 'True'
 
   globals_fc_params:
-    - '[(200, 0.1), (50, 0.1)]'
     - '[(300, 0.1), (200, 0.1), (100, 0.1)]'
-    - '[(500, 0.1), (300, 0.1), (100, 0.1)]'
+    # - '[(200, 0.1), (50, 0.1)]'
+    # - '[(500, 0.1), (300, 0.1), (100, 0.1)]'
+
+  joined_fc_params:
+    - '[(50, 0.1)]'
+    # - '[(200, 0.1), (50, 0.1)]'
+    # - '[(500, 0.1), (300, 0.1), (100, 0.1)]'
+

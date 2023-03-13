@@ -42,22 +42,33 @@ DATA_CONFIG='TopDecay/data/delphes_hl_features_lin.yaml'
 # --regression-mode \
 # --gpus 0
 
+pwd
+cd ..
+pwd
 
-
- for epoch in 0 1 2 5 10 20 50 100 200 399
- do
+for epoch in 0 1 2 5 10 20 50 100 200
+do
 
 python train.py \
 --predict \
---data-test ${PATH_TO_DATA}'tschRefPointNoWidthRW_[8-9]?.root' \
---data-config ${DATA_CONFIG} \
---network-config 'original/models/mlp_genjetAK8_lin.py'  \
---model-prefix TopDecay/models/mlp_hl_lin_delphes_test_1/mlp_epoch-${epoch}_state.pt \
---predict-output prediction_at_epoch_${epoch}.root \
+--data-test /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_8*.root \
+--network-config TopDecay/networks/ParticleNet/test_pnet.py \
+--data-config TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml \
+--model-prefix models/pre_train_global_fc_1/model \
+--predict-output prediction_at_epoch_${epoch} \
+--weighting  \
+--fetch-step 20 \
+--num-workers 3 \
+--fetch-by-files  \
 --regression-mode \
---gpus "" 
+--network-option conv_params '[(4, (8,8,8)), (8, (16, 16, 16))]' \
+--network-option pnet_fc_params '[(32, 0.1)]' \
+--network-option freeze_pnet 'True' \
+--network-option globals_fc_params '[(300, 0.1), (200, 0.1), (100, 0.1)]' \
+--network-option joined_fc_params '[(50, 0.1)]' \
+--gpus 0 
 
- done
+done
 
 
 # python train.py \

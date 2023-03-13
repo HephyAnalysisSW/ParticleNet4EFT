@@ -284,7 +284,7 @@ class ParticleNet(nn.Module):
 
         # make dummy pnet output for joined fc
         batch_size = global_fts.size()[0]
-        dummy_pnet_output = torch.randn(batch_size, self.pnet_fc.out_chn)
+        dummy_pnet_output = torch.randn(batch_size, self.pnet_fc.out_chn, device=global_features.device)
 
         # joined_fc
         output = self.joined_fc(
@@ -307,7 +307,7 @@ class ParticleNet(nn.Module):
 
         # make dummy global fc output
         batch_size = global_features.size()[0]
-        dummy_global_fc_output = torch.randn(batch_size, self.globals_fc.out_chn)
+        dummy_global_fc_output = torch.randn(batch_size, self.globals_fc.out_chn, device=global_features.device)
 
         # joined_fc
         output = self.joined_fc(

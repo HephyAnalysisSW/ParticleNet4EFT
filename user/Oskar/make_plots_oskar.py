@@ -19,7 +19,7 @@ from matplotlib import colors
 from matplotlib.backends.backend_pdf import PdfPages
 
 
-BASE_DIR = pathlib.Path(__file__).parent.resolve()
+BASE_DIR = pathlib.Path(__file__).parents[0].resolve()
 USER = os.getlogin()
 
 DEFAULT_CONFIG = BASE_DIR / "data" / "for_plots" / "wilson_plot.yaml"
