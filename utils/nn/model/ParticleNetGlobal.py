@@ -16,7 +16,6 @@ def knn(x, k):
 # v1 is faster on GPU
 def get_graph_feature_v1(x, k, idx):
     batch_size, num_dims, num_points = x.size()
-
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
     idx = idx + idx_base
     idx = idx.view(-1)
@@ -25,7 +24,10 @@ def get_graph_feature_v1(x, k, idx):
     fts = fts[idx, :].view(batch_size, num_points, k, num_dims)  # neighbors: -> (batch_size*num_points*k, num_dims) -> ...
     fts = fts.permute(0, 3, 1, 2).contiguous()  # (batch_size, num_dims, num_points, k)
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
+    #print ("not subtracted", (x)[0] )
+    #print ("    subtracted", (fts-x)[0] )
     fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
+
     return fts
 
 
@@ -77,10 +79,12 @@ class EdgeConvBlock(nn.Module):
         for i in range(self.num_layers):
             self.convs.append(nn.Conv2d(2 * in_feat if i == 0 else out_feats[i - 1], out_feats[i], kernel_size=1, bias=False if self.batch_norm else True))
 
-        if batch_norm:
-            self.bns = nn.ModuleList()
-            for i in range(self.num_layers):
+        self.bns = nn.ModuleList()
+        for i in range(self.num_layers):
+            if batch_norm:
                 self.bns.append(nn.BatchNorm2d(out_feats[i]))
+            else:
+                self.bns.append( None )
 
         if activation:
             self.acts = nn.ModuleList()
@@ -99,6 +103,7 @@ class EdgeConvBlock(nn.Module):
     def forward(self, points, features):
 
         topk_indices = knn(points, self.k)
+
         x = self.get_graph_feature(features, self.k, topk_indices)
 
         for conv, bn, act in zip(self.convs, self.bns, self.acts):
@@ -153,7 +158,7 @@ class ParticleNet(nn.Module):
             self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, batch_norm=batch_norm, cpu_mode=for_inference))
 
         self.use_fusion = use_fusion
-        if self.use_fusion: # KEINE AHNUNG WAS DAS MACHT UND WARUM IST DAS HARDGECODED??
+        if self.use_fusion: 
             in_chn = sum(x[-1] for _, x in conv_params)
             out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
             self.fusion_block = nn.Sequential(nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False), nn.BatchNorm1d(out_chn), nn.ReLU())
@@ -193,8 +198,7 @@ class ParticleNet(nn.Module):
             for idx, layer_param in enumerate(fc_combined_params):
                 channels, drop_rate = layer_param
                 if idx == 0:
-                    #in_chn_combined = fc_params[-1][0] +global_output_dims + out_chn if self.use_fusion else fc_params[-1][0]  + global_output_dims  # FIXME: fusion only in fc_params
-                    in_chn_combined = fc_params[-1][0] +global_output_dims 
+                    in_chn_combined = (fc_params[-1][0] if fc_params else 0) + global_output_dims 
                 else:
                     in_chn_combined = fc_combined_params[idx - 1][0]
 
@@ -209,61 +213,73 @@ class ParticleNet(nn.Module):
         self.for_inference = for_inference
 
     def forward(self, points, features, global_features, mask=None):
-#         
-        #nans = np.where(np.isnan(global_features.cpu()))[0]
-        #if len(nans)>0:
-        #    print ("nan:",nans[0])
-        #infs = np.where(np.isinf(global_features.cpu()))[0]
-        #if len(infs)>0:
-        #    print ("inf:",infs[0])
 
         if mask is None:
             mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
         points *= mask
         features *= mask
+        # move coordinates of masked points to large values 
         coord_shift = (mask == 0) * 1e9
+
         if self.use_counts:
             counts = mask.float().sum(dim=-1)
             counts = torch.max(counts, torch.ones_like(counts))  # >=1
 
-        if self.use_fts_bn:
+        # Edgeconv features batch normalisation
+        if self.use_fts_bn: 
             fts = self.bn_fts(features) * mask
         else:
             fts = features
         outputs = []
         for idx, conv in enumerate(self.edge_convs):
             pts = (points if idx == 0 else fts) + coord_shift
+            #print ("idx",idx,"input",fts[0])
             fts = conv(pts, fts) * mask
             if self.use_fusion:
                 outputs.append(fts)
+        #print ("Edgeconv output",fts[0])
+
         if self.use_fusion:
             fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
 
 #         assert(((fts.abs().sum(dim=1, keepdim=True) != 0).float() - mask.float()).abs().sum().item() == 0)
-        
-        if self.use_counts:
+
+        # Pooling of EdgeConv output
+        if self.use_counts:     
             x = fts.sum(dim=-1) / counts  # divide by the real counts
         else:
             x = fts.mean(dim=-1)
 
+        # pass pooled output through fully connected layers
         for idx, layer in enumerate(self.fc):            
             x = layer(x)
 
+        # global features
         if len( self.fc_global) > 0:
             for idx, layer in enumerate(self.fc_global): 
                 if idx == 0:
-                    y = layer(global_features[:,:,0]) #add global features
+                    y = layer(global_features[:,:,0]) #evaluate global layers
                 else:            
                     y = layer(y)
         else:
             y = global_features[:,:,0] 
 
-        for idx, layer in enumerate(self.fc_combined): 
-            if idx == 0:
-                x = layer(torch.cat((x, y), dim=1)) # concat global DNN and DNN after GNN
-            else:            
-                x = layer(x)      
-        output = x
+        if len(self.fc)==0: # the case where we have NO edge conv block
+            # combined layers
+            for idx, layer in enumerate(self.fc_combined): 
+                if idx == 0:
+                    x = layer(y) # only global layer here (we have no edge conv block here) 
+                else:            
+                    x = layer(x)      
+            output = x
+        else:
+            # combined layers
+            for idx, layer in enumerate(self.fc_combined): 
+                if idx == 0:
+                    x = layer(torch.cat((x, y), dim=1)) # concat global DNN and DNN after GNN
+                else:            
+                    x = layer(x)      
+            output = x
 
         if self.for_inference:
             output = torch.softmax(output, dim=1)
@@ -272,14 +288,20 @@ class ParticleNet(nn.Module):
 
 class FeatureConv(nn.Module):
 
-    def __init__(self, in_chn, out_chn, **kwargs):
+    def __init__(self, in_chn, out_chn, batch_norm=True, **kwargs):
         super(FeatureConv, self).__init__(**kwargs)
-        self.conv = nn.Sequential(
-            nn.BatchNorm1d(in_chn),
-            nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
-            nn.BatchNorm1d(out_chn),
-            nn.ReLU()
-            )
+        if batch_norm:
+            self.conv = nn.Sequential(
+                nn.BatchNorm1d(in_chn),
+                nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
+                nn.BatchNorm1d(out_chn),
+                nn.ReLU()
+                )
+        else:
+            self.conv = nn.Sequential(
+                nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
+                nn.ReLU()
+                )
 
     def forward(self, x):
         return self.conv(x)
@@ -296,19 +318,20 @@ class ParticleNetTagger(nn.Module):
                  fc_combined_params=None,
                  use_fusion=True,
                  batch_norm=True,
+                 conv_dim=32,
                  use_fts_bn=True,
                  use_counts=True,
                  constituents_input_dropout=None,
-                 global_input_dropout=None,
+                 #global_input_dropout=None,
                  for_inference=False,
                  **kwargs):
         super(ParticleNetTagger, self).__init__(**kwargs)
+        self.num_classes = num_classes
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
-        self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
-        self.constituents_conv = FeatureConv(constituents_features_dims, 32)
-        #self.global_conv = FeatureConv(global_features_dims, 64) #FIXME should be removed!
+        #self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
+        self.constituents_conv = FeatureConv(constituents_features_dims, conv_dim, batch_norm=True)
         self.global_batchnorm = nn.BatchNorm1d(global_features_dims)
-        self.pn = ParticleNet(input_dims=32,
+        self.pn = ParticleNet(input_dims=conv_dim ,
                               global_dims=global_features_dims,
                               num_classes=num_classes,
                               conv_params=conv_params,
@@ -322,14 +345,26 @@ class ParticleNetTagger(nn.Module):
                               for_inference=for_inference)
 
     def forward(self, global_features, constituents_points, constituents_features, constituents_mask ):
+
         if self.constituents_input_dropout:
             constituents_mask = (self.constituents_input_dropout(constituents_mask) != 0).float()
             constituents_points *= constituents_mask
             constituents_features *= constituents_mask
 
-        points   = constituents_points #torch.cat((constituents_points, neh_points, el_points, mu_points, ph_points), dim=2)
-        features = self.constituents_conv(constituents_features * constituents_mask) * constituents_mask# torch.cat((self.chh_conv(chh_features * chh_mask) * chh_mask, self.neh_conv(neh_features * neh_mask) * neh_mask, self.el_conv(el_features * el_mask) * el_mask, self.mu_conv(mu_features * mu_mask) * mu_mask, self.ph_conv(ph_features * ph_mask) * ph_mask), dim=2)
+        points   = constituents_points 
+        #print ("before", constituents_features.shape, constituents_features[0])
+        #FIXME!! removed feature convolution for debugging 
+        features = self.constituents_conv(constituents_features * constituents_mask) * constituents_mask
+        #features = constituents_features 
+        #print ("after", features.shape, features[0])
+        #print ("global_features",global_features.shape)  
+        #print (" before batch_norm", global_features[:10])
         global_features = self.global_batchnorm(global_features)
-        #global_features =  global_features #self.global_conv(global_features)
+        #print (" after batch_norm", global_features[:10])
+
+        #print ("constituents_features",constituents_features.shape)  
+        #print (" before conv", constituents_features[:10])
+        #print (" after conv", features.shape, features[:10])
         mask = constituents_mask #torch.cat((chh_mask, neh_mask, el_mask, mu_mask, ph_mask), dim=2)
+        #print ("points",points.shape, points[:10])
         return self.pn(points, features, global_features, mask)

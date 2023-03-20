@@ -1,5 +1,5 @@
 import torch
-from utils.nn.model.ParticleNetGlobal import ParticleNetTagger
+from utils.nn.model.ParticleNet import ParticleNetTagger
 from torch import Tensor
 import math
 
@@ -10,29 +10,27 @@ def get_model(data_config, **kwargs):
         (16, (256, 256, 256)),
         ]
     fc_params = [(256, 0.1)]
-    fc_global_params = None 
-    fc_combined_params = [(256, 0.1), (256, 0.1)]#, (256, 0.1)] 
     use_fusion = True
-    batch_norm = True
-    eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
+
+    eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
     # training linear and quadratic together:
     num_classes = 2 #len(data_config.label_value)
     model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
-                              conv_params, 
-                              fc_params=fc_params, fc_global_params=fc_global_params, fc_combined_params=fc_combined_params,
+                              conv_params, fc_params,
                               use_fusion=use_fusion,
-                              batch_norm=batch_norm,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
                               use_counts=kwargs.get('use_counts', True),
                               constituents_input_dropout=kwargs.get('constituents_input_dropout', None),
-                              #global_input_dropout=kwargs.get('global_input_dropout', None),
+                              global_input_dropout=kwargs.get('global_input_dropout', None),
                               for_inference=kwargs.get('for_inference', False)
                               )
 
     model_info = {
         'input_names':list(data_config.input_names),
         'input_shapes':{k:((1,) + s[1:]) for k, s in data_config.input_shapes.items()},
+        #'output_names':['softmax'],
+        #'dynamic_axes':{**{k:{0:'N', 2:'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'softmax':{0:'N'}}},
         'output_names': ['output'],
         'dynamic_axes': {**{k: {0: 'N', 2: 'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'output': {0: 'N'}}},
         }
@@ -56,12 +54,6 @@ class LossLikelihoodFree(torch.nn.L1Loss):
         weight      = target[:,0] # this is the weight
         target_lin  = target[:,1] # this is the linear term
         target_quad = target[:,2] # this is the quadratic term
-
-        if torch.isnan(target).sum():
-            print("Found NAN in target!")
-        if torch.isnan(input).sum():
-            print("Found NAN in input!")
-        #print(input)
 
         loss = weight*( self.base_points[0]*(target_lin-input[:,0]) + .5*self.base_points[0]**2*(target_quad-input[:,1]) )**2
         for theta_base in self.base_points[1:]: #two base-points: 1,2

@@ -248,6 +248,7 @@ class ParticleNetTagger(nn.Module):
                  for_inference=False,
                  **kwargs):
         super(ParticleNetTagger, self).__init__(**kwargs)
+        self.num_classes = num_classes
         self.pf_input_dropout = nn.Dropout(pf_input_dropout) if pf_input_dropout else None
         self.sv_input_dropout = nn.Dropout(sv_input_dropout) if sv_input_dropout else None
         self.pf_conv = FeatureConv(pf_features_dims, 32)

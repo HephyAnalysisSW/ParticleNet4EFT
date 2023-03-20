@@ -203,8 +203,9 @@ class _SimpleIter(object):
             str(self.load_range),
             '\n'.join(self.filelist[: 3]) + '\n ... ' + self.filelist[-1],)
 
-        _logger.info('Restarted DataIter %s, load_range=%s, file_list:\n%s' %
-                     (self._name, str(self.load_range), json.dumps(self.worker_file_dict, indent=2)))
+        _logger.info('Restarted DataIter %s, load_range=%s' %
+                     (self._name, str(self.load_range)))
+        _logger.debug('file_list:\n%s' %  (json.dumps(self.worker_file_dict, indent=2)))
 
         # reset file fetching cursor
         self.ipos = 0 if self._fetch_by_files else self.load_range[0]

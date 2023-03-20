@@ -489,7 +489,7 @@ def optim(args, model, device):
         if args.load_epoch<0:
             files = glob.glob(args.model_prefix + '_epoch-*_state.pt')
             if len(files)>0:
-                load_file_name = max( files )
+                load_file_name = max( files, key = lambda f: int(f.split('-')[-1].split('_')[0]))
                 args.load_epoch = int(load_file_name.split('-')[-1].split('_')[0])
             else:
                 args.load_epoch = None
@@ -797,7 +797,6 @@ def main(args):
                     continue
             _logger.info('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
-            print (train)
             train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
                   steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
             if args.model_prefix and (args.backend is None or local_rank == 0):

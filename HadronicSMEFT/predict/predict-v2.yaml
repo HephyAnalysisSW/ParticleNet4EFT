@@ -1,0 +1,20 @@
+ctGIm-v2:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm-v2/ctGIm 
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py
+    epochs:
+        - all
+ctGRe-v2:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGRe-v2/ctGRe 
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py
+    epochs:
+        - all
+ctWIm-v2:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctWIm-v2/ctWIm 
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py
+    epochs:
+        - all
+ctWRe-v2:
+    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctWRe-v2/ctWRe 
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py
+    epochs:
+        - all

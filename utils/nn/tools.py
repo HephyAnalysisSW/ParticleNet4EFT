@@ -78,11 +78,11 @@ def train_classification(model, loss_func, opt, scheduler, train_loader, dev, ep
             total_correct += correct
 
             tq.set_postfix({
-                'lr': '%.2e' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
-                'Loss': '%.5f' % loss,
-                'AvgLoss': '%.5f' % (total_loss / num_batches),
-                'Acc': '%.5f' % (correct / num_examples),
-                'AvgAcc': '%.5f' % (total_correct / count)})
+                'lr': '%.2g' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
+                'Loss': '%.2g' % loss,
+                'AvgLoss': '%.2g' % (total_loss / num_batches),
+                'Acc': '%.2g' % (correct / num_examples),
+                'AvgAcc': '%.2g' % (total_correct / count)})
 
             if tb_helper:
                 tb_helper.write_scalars([
@@ -101,7 +101,7 @@ def train_classification(model, loss_func, opt, scheduler, train_loader, dev, ep
 
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
-    _logger.info('Train AvgLoss: %.5f, AvgAcc: %.5f' % (total_loss / num_batches, total_correct / count))
+    _logger.info('Train AvgLoss: %.2g, AvgAcc: %.2e' % (total_loss / num_batches, total_correct / count))
     _logger.info('Train class distribution: \n    %s', str(sorted(label_counter.items())))
 
     if tb_helper:
@@ -173,10 +173,10 @@ def evaluate_classification(model, test_loader, dev, epoch, for_training=True, l
                 total_correct += correct
 
                 tq.set_postfix({
-                    'Loss': '%.5f' % loss,
-                    'AvgLoss': '%.5f' % (total_loss / count),
-                    'Acc': '%.5f' % (correct / num_examples),
-                    'AvgAcc': '%.5f' % (total_correct / count)})
+                    'Loss': '%.2g' % loss,
+                    'AvgLoss': '%.2g' % (total_loss / count),
+                    'Acc': '%.2g' % (correct / num_examples),
+                    'AvgAcc': '%.2g' % (total_correct / count)})
 
                 if tb_helper:
                     if tb_helper.custom_fn:
@@ -259,8 +259,8 @@ def evaluate_onnx(model_path, test_loader, eval_metrics=['roc_auc_score', 'roc_a
             count += num_examples
 
             tq.set_postfix({
-                'Acc': '%.5f' % (correct / num_examples),
-                'AvgAcc': '%.5f' % (total_correct / count)})
+                'Acc': '%.2g' % (correct / num_examples),
+                'AvgAcc': '%.2g' % (total_correct / count)})
 
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
@@ -320,13 +320,13 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, epoch,
             sum_sqr_err += sqr_err
 
             tq.set_postfix({
-                'lr': '%.2e' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
-                'Loss': '%.5f' % loss,
-                'AvgLoss': '%.5f' % (total_loss / num_batches),
-                'MSE': '%.5f' % (sqr_err / num_examples),
-                'AvgMSE': '%.5f' % (sum_sqr_err / count),
-                'MAE': '%.5f' % (abs_err / num_examples),
-                'AvgMAE': '%.5f' % (sum_abs_err / count),
+                'lr': '%.2g' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
+                'Loss': '%.2g' % loss,
+                'AvgLoss': '%.2g' % (total_loss / num_batches),
+                'MSE': '%.2g' % (sqr_err / num_examples),
+                'AvgMSE': '%.2g' % (sum_sqr_err / count),
+                'MAE': '%.2g' % (abs_err / num_examples),
+                'AvgMAE': '%.2g' % (sum_abs_err / count),
             })
 
             if tb_helper:
@@ -348,7 +348,7 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, epoch,
 
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
-    _logger.info('Train AvgLoss: %.5f, AvgMSE: %.5f, AvgMAE: %.5f' %
+    _logger.info('Train AvgLoss: %.2g, AvgMSE: %.2e, AvgMAE: %.2e' %
                  (total_loss / num_batches, sum_sqr_err / count, sum_abs_err / count))
 
     if tb_helper:
@@ -412,12 +412,12 @@ def evaluate_regression(model, test_loader, dev, epoch, for_training=True, loss_
                 sum_sqr_err += sqr_err
 
                 tq.set_postfix({
-                    'Loss': '%.5f' % loss,
-                    'AvgLoss': '%.5f' % (total_loss / count),
-                    'MSE': '%.5f' % (sqr_err / num_examples),
-                    'AvgMSE': '%.5f' % (sum_sqr_err / count),
-                    'MAE': '%.5f' % (abs_err / num_examples),
-                    'AvgMAE': '%.5f' % (sum_abs_err / count),
+                    'Loss': '%.2g' % loss,
+                    'AvgLoss': '%.2g' % (total_loss / count),
+                    'MSE': '%.2g' % (sqr_err / num_examples),
+                    'AvgMSE': '%.2g' % (sum_sqr_err / count),
+                    'MAE': '%.2g' % (abs_err / num_examples),
+                    'AvgMAE': '%.2g' % (sum_abs_err / count),
                 })
 
                 if tb_helper:
@@ -463,10 +463,8 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
 
     total_loss = 0
     num_batches = 0
-    sum_sqr_err_lin = 0
-    sum_abs_err_lin = 0
-    sum_sqr_err_quad = 0
-    sum_abs_err_quad = 0
+    sum_sqr_err = [0]*model.num_classes
+    sum_abs_err = [0]*model.num_classes
     count = 0
     start_time = time.time()
     with tqdm.tqdm(train_loader) as tq:
@@ -474,7 +472,6 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             inputs = [X[k].to(dev) for k in data_config.input_names]
             #label = y[data_config.label_names[0]].float()
 
-            # fitting the linear term
             label = y[data_config.label_names[0]].float() 
             num_examples = label.shape[0]
             label = label.to(dev)
@@ -505,38 +502,35 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             count += num_examples
             total_loss += loss
 
-            e_lin       = label[:,0]*(preds[:,0] - label[:,1])
-            abs_err_lin = e_lin.abs().sum().item()
-            sum_abs_err_lin += abs_err_lin
-            sqr_err_lin = (label[:,0]*(preds[:,0] - label[:,1])**2).sum().item()
-            sum_sqr_err_lin += sqr_err_lin
+            sqr_err, abs_err = [], []
+            for n_class in range( model.num_classes ):
+                # we assume the target has the form w0, w1/w0, w2/w0, ..., and the predictions are estimators of w1/w0, w2/w0, etc. 
+                diff    = preds[:,n_class] - label[:,n_class+1] if model.num_classes>1 else preds-label[:,1]
+                e       = label[:,0]*diff
+                abs_err.append(e.abs().sum().item())
+                sum_abs_err[n_class] += abs_err[-1]
+                sqr_err.append( (label[:,0]*diff**2).sum().item() )
+                sum_sqr_err[n_class] += sqr_err[-1]
 
-            e_quad       = label[:,0]*(preds[:,1] - label[:,2])
-            abs_err_quad = e_quad.abs().sum().item()
-            sum_abs_err_quad += abs_err_quad
-            sqr_err_quad = (label[:,0]*(preds[:,1] - label[:,2])**2).sum().item()
-            sum_sqr_err_quad += sqr_err_quad
-
-            tq.set_postfix({
-                'lr': '%.2e' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
-                'Loss': '%.5f' % loss,
-                'AvgLoss': '%.4f' % (total_loss / num_batches),
-                'MSE(l)': '%.4f' % (sqr_err_lin / num_examples),
-                'AvgMSE(l)': '%.4f' % (sum_sqr_err_lin / count),
-                'MAE(l)': '%.4f' % (abs_err_lin / num_examples),
-                'AvgMAE(l)': '%.4f' % (sum_abs_err_lin / count),
-                'MSE(q)': '%.4f' % (sqr_err_quad / num_examples),
-                'AvgMSE(q)': '%.4f' % (sum_sqr_err_quad / count),
-                'MAE(q)': '%.4f' % (abs_err_quad / num_examples),
-                'AvgMAE(q)': '%.4f' % (sum_abs_err_quad / count),
-            })
+            pf_dict = {
+                'lr': '%.2g' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
+                'Loss': '%.2g' % loss,
+                'AvgLoss': '%.2g' % (total_loss / num_batches),
+            }
+            for n_class in range( model.num_classes ):
+                pf_dict.update( {
+                    'MSE(%i)'%n_class: '%.2g'%(sqr_err[n_class]/num_examples), 
+                    'AvgMSE(%i)'%n_class: '%.2g'%(sum_sqr_err[n_class]/count), 
+                    'MAE(%i)'%n_class: '%.2g'%(abs_err[n_class]/num_examples), 
+                    'AvgMAE(%i)'%n_class: '%.2g'%(sum_abs_err[n_class]/count), 
+                    })
+            tq.set_postfix(pf_dict)
 
             if tb_helper:
-                tb_helper.write_scalars([
-                    ("Loss/train", loss, tb_helper.batch_train_count + num_batches),
-                    ("MSE(l)/train", sqr_err_lin / num_examples, tb_helper.batch_train_count + num_batches),
-                    ("MSE(q)/train", sqr_err_quad / num_examples, tb_helper.batch_train_count + num_batches),
-                    ])
+                tb_helper.write_scalars(
+                    [ ("Loss/train", loss, tb_helper.batch_train_count + num_batches) ] + 
+                    [ ("MSE(%i)/train"%n_class, sqr_err[n_class] / num_examples, tb_helper.batch_train_count + num_batches) for n_class in range(model.num_classes)]
+                    )
                 if tb_helper.custom_fn:
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
@@ -549,15 +543,13 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
 
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
-    #_logger.info('Train AvgLoss: %.5f, AvgMSE: %.5f, AvgMAE: %.5f' %
-    #             (total_loss / num_batches, sum_sqr_err / count, sum_abs_err / count))
 
     if tb_helper:
-        tb_helper.write_scalars([
-            ("Loss/train (epoch)", total_loss / num_batches, epoch),
-            ("MSE(l)/train (epoch)", sum_sqr_err_lin / count, epoch),
-            ("MSE(q)/train (epoch)", sum_sqr_err_quad / count, epoch),
-            ])
+        tb_helper.write_scalars(
+            [ ("Loss/train (epoch)", total_loss / num_batches, epoch) ] + 
+            [ ("MSE(%i)/train"%n_class, sum_sqr_err[n_class] / count, epoch) for n_class in range(model.num_classes)]
+        )
+
         if tb_helper.custom_fn:
             with torch.no_grad():
                 tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=-1, mode='train')
@@ -576,10 +568,8 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
 
     total_loss = 0
     num_batches = 0
-    sum_sqr_err_lin = 0
-    sum_abs_err_lin = 0
-    sum_sqr_err_quad = 0
-    sum_abs_err_quad = 0
+    sum_sqr_err = [0]*model.num_classes
+    sum_abs_err = [0]*model.num_classes
     count = 0
     scores = []
     labels = defaultdict(list)
@@ -607,30 +597,29 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
                 count += num_examples
                 total_loss += loss * num_examples
 
-                e_lin       = label[:,0]*(preds[:,0] - label[:,1])
-                abs_err_lin = e_lin.abs().sum().item()
-                sum_abs_err_lin += abs_err_lin
-                sqr_err_lin = (label[:,0]*(preds[:,0] - label[:,1])**2).sum().item()
-                sum_sqr_err_lin += sqr_err_lin
-                
-                e_quad       = label[:,0]*(preds[:,1] - label[:,2])
-                abs_err_quad = e_quad.abs().sum().item()
-                sum_abs_err_quad += abs_err_quad
-                sqr_err_quad = (label[:,0]*(preds[:,1] - label[:,2])**2).sum().item()
-                sum_sqr_err_quad += sqr_err_quad
+                sqr_err, abs_err = [], []
+                for n_class in range( model.num_classes ):
+                    # we assume the target has the form w0, w1/w0, w2/w0, ..., and the predictions are estimators of w1/w0, w2/w0, etc. 
+                    diff    = preds[:,n_class] - label[:,n_class+1] if model.num_classes>1 else preds-label[:,1]
+                    e       = label[:,0]*diff
+                    abs_err.append(e.abs().sum().item())
+                    sum_abs_err[n_class] += abs_err[-1]
+                    sqr_err.append( (label[:,0]*diff**2).sum().item() )
+                    sum_sqr_err[n_class] += sqr_err[-1]
 
-                tq.set_postfix({
-                    'Loss': '%.5f' % loss,
-                    'AvgLoss': '%.5f' % (total_loss / count),
-                    'MSE(l)': '%.4f' % (sqr_err_lin / num_examples),
-                    'AvgMSE(l)': '%.4f' % (sum_sqr_err_lin / count),
-                    'MAE(l)': '%.4f' % (abs_err_lin / num_examples),
-                    'AvgMAE(l)': '%.4f' % (sum_abs_err_lin / count),
-                    'MSE(q)': '%.4f' % (sqr_err_quad / num_examples),
-                    'AvgMSE(q)': '%.4f' % (sum_sqr_err_quad / count),
-                    'MAE(q)': '%.4f' % (abs_err_quad / num_examples),
-                    'AvgMAE(q)': '%.4f' % (sum_abs_err_quad / count),
-                })
+                pf_dict = {
+                    'Loss': '%.2g' % loss,
+                    'AvgLoss': '%.2g' % (total_loss / count),
+                }
+                for n_class in range( model.num_classes ):
+                    pf_dict.update( {
+                        'MSE(%i)'%n_class: '%.2g'%(sqr_err[n_class]/num_examples), 
+                        'AvgMSE(%i)'%n_class: '%.2g'%(sum_sqr_err[n_class]/count), 
+                        'MAE(%i)'%n_class: '%.2g'%(abs_err[n_class]/num_examples), 
+                        'AvgMAE(%i)'%n_class: '%.2g'%(sum_abs_err[n_class]/count), 
+                        })
+
+                tq.set_postfix(pf_dict)
 
                 if tb_helper:
                     if tb_helper.custom_fn:
@@ -646,11 +635,10 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
 
     if tb_helper:
         tb_mode = 'eval' if for_training else 'test'
-        tb_helper.write_scalars([
-            ("Loss/%s (epoch)" % tb_mode, total_loss / count, epoch),
-            ("MSE(l)/train (epoch)", sum_sqr_err_lin / count, epoch),
-            ("MSE(q)/train (epoch)", sum_sqr_err_quad / count, epoch),
-            ])
+        tb_helper.write_scalars(
+                [ ("Loss/%s (epoch)" % tb_mode, total_loss / count, epoch)] +
+                [ ("MSE(%i)/train"%n_class, sum_sqr_err[n_class] / count, epoch) for n_class in range(model.num_classes)] 
+            )
         if tb_helper.custom_fn:
             with torch.no_grad():
                 tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=-1, mode=tb_mode)
