@@ -5,7 +5,7 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params =  [(5, (300,300,300))]         # Note to myself: first parameter in conv_params is (probably) the number of connected neighbours
-    fc_params = [(15, 0.0), (2, 0.0)]           # fully connected layer (hidden_size, drop_out) after GNN for array based input
+    fc_params = [(30, 0.0)]           # fully connected layer (hidden_size, drop_out) after GNN for array based input
     fc_global_params = [(80, 0.0),(45, 0.0)]    # fully connected layer (hidden_size, drop_out) for global features only
     fc_combined_params = [(5,0.0)]              # fully connected layer (hidden_size, drop_out) for combined input from fc and fc_global
     use_fusion = True
@@ -20,7 +20,7 @@ def get_model(data_config, **kwargs):
                               use_fts_bn=kwargs.get('use_fts_bn', False), # ?
                               use_counts=kwargs.get('use_counts', False), # ?
                               constituents_input_dropout=kwargs.get('constituents_input_dropout', None), # drop out before ParticleNet
-                              global_input_dropout=kwargs.get('global_input_dropout', None),  # drop out before first DNN layer
+                              #global_input_dropout=kwargs.get('global_input_dropout', None),  # drop out before first DNN layer
                               for_inference=kwargs.get('for_inference', False) # applies softmax at last step
                               )
 
