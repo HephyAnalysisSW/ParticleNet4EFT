@@ -1,0 +1,5 @@
+ctt:
+    prefix:         TTTT_MS_mean_ctt_epochs-20_hs1-80_hs2-45_hsc-5_ParticleNet-5_300_30 
+    network-config:  FourFermion/networks/particle_net_genjetAK8_weighttest_Lena.py
+    epochs:
+        - all
