@@ -50,7 +50,7 @@ class ParticleNetTagger(nn.Module):
         super(ParticleNetTagger, self).__init__(**kwargs)
         self.num_classes = num_classes
         #self.global_input_dropout = nn.Dropout(global_input_dropout) if global_input_dropout else None
-        self.batchnorm = nn.BatchNorm1d(dims) if batch_norm else None
+        self.batchnorm = nn.BatchNorm1d(dims, ) if batch_norm else None
         self.pn = ParticleNet(dims=dims,
                               params=params,
                               num_classes=num_classes,

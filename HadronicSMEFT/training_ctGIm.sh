@@ -1,14 +1,16 @@
-#    --data-test  '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v8/TT01jDebug/*.root'\
-
-python train.py \
-    --data-train '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v9/TT01jDebug/TT01jDebug_*.root'\
+#    --in-memory\
+ipython -i train.py --\
+    --data-train '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v10/TT01j_HT800_ext_comb/TT01j_HT800_ext_comb_0.root'\
     --data-config    HadronicSMEFT/data/delphesJet_ctGIm.yaml\
     --network-config HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py\
-    --model-prefix   /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm-v2/ctGIm\
-    --batch-size 128  --start-lr 5e-4 --num-epochs 20 --optimizer ranger\
+    --model-prefix   /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm/ctGIm\
+    --start-lr 1e-2 --num-epochs 300 --optimizer adam --tensorboard "./ctGIm"\
+    --batch-size 256\
+    --steps-per-epoch 300\
     --log HadronicSMEFT/logs/train.log\
+    --fetch-by-files\
+    --fetch-step 10\
     --regression-mode\
     --weighting\
-    --tensorboard test\
-    --gpus 0\
-    --load-epoch -1
+    --gpus ""
+#    --load-epoch -1
