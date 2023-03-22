@@ -14,6 +14,9 @@ new_variables:
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
    eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
 
+   truth_lin:  ctGIm_coeff[:,1]
+   truth_quad: ctGIm_coeff[:,2]
+
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
   ### [note]: `[var]_mask` will not be transformed even if `method=auto`
@@ -25,123 +28,20 @@ inputs:
    global_features:
       length: 1
       vars:
-           - parton_lepTop_pt
-        #       - parton_lepTop_eta
-           - parton_lepTop_phi
-           - parton_lepTop_lep_pt
-           - parton_lepTop_lep_eta
-           - parton_lepTop_lep_phi
-           - parton_lepTop_nu_pt
-           - parton_lepTop_nu_phi
-           - parton_lepTop_b_pt
-           - parton_lepTop_b_eta
-           - parton_lepTop_b_phi
-           - parton_lepTop_W_pt
-        #       - parton_lepTop_W_eta
-           - parton_lepTop_W_phi
-        #       - parton_nu_eta
-           - delphesJet_pt
-           - delphesJet_eta
-           - delphesJet_phi
-        #       - delphesJet_nConstituents
-           - delphesJet_SDmass
-           - delphesJet_SDsubjet0_deltaEta
-           - delphesJet_SDsubjet0_deltaPhi
-           - delphesJet_SDsubjet0_deltaR
-           - delphesJet_SDsubjet0_mass
-           - delphesJet_SDsubjet1_deltaEta
-           - delphesJet_SDsubjet1_deltaPhi
-           - delphesJet_SDsubjet1_deltaR
-           - delphesJet_SDsubjet1_mass
-           - delphesJet_tau1
-           - delphesJet_tau2
-           - delphesJet_tau3
-           - delphesJet_tau4
-           - delphesJet_tau21
-           - delphesJet_tau32
-           - delphesJet_ecf1
-           - delphesJet_ecf2
-           - delphesJet_ecf3
-           - delphesJet_ecfC1
-           - delphesJet_ecfC2
-           - delphesJet_ecfC3
-           - delphesJet_ecfD
-           - delphesJet_ecfDbeta2
-           - delphesJet_ecfM1
-           - delphesJet_ecfM2
-           - delphesJet_ecfM3
-           - delphesJet_ecfM1beta2
-           - delphesJet_ecfM2beta2
-           - delphesJet_ecfM3beta2
-           - delphesJet_ecfN1
-           - delphesJet_ecfN2
-           - delphesJet_ecfN3
-           - delphesJet_ecfN1beta2
-           - delphesJet_ecfN2beta2
-           - delphesJet_ecfN3beta2
-           - delphesJet_ecfU1
-           - delphesJet_ecfU2
-           - delphesJet_ecfU3
-           - delphesJet_ecfU1beta2
-           - delphesJet_ecfU2beta2
-           - delphesJet_ecfU3beta2
-
+         - truth_lin
+         - truth_quad
    constituents_points:
-      length: 200
+      length: 100
       vars: 
          - eflow_etarel
          - eflow_phirel
-         - eflow_charge
-         - eflow_pt
-         - eflow_eta
-         - eflow_phi
-         - eflow_type
-         - eflow_cos_phi_lab
-         - eflow_abs_delta_phi_ll_lab
-         - eflow_cosTheta_n 
-         - eflow_cosTheta_r 
-         - eflow_cosTheta_k 
-         - eflow_cosTheta_r_star
-         - eflow_cosTheta_k_star
-         - eflow_xi_nn
-         - eflow_xi_rr
-         - eflow_xi_kk
-         - eflow_xi_nr_plus 
-         - eflow_xi_nr_minus
-         - eflow_xi_rk_plus 
-         - eflow_xi_rk_minus
-         - eflow_xi_nk_plus 
-         - eflow_xi_nk_minus
-         - eflow_cos_phi
    eflow_features:
-      length: 200
+      length: 100
       vars: 
-         - eflow_etarel
-         - eflow_phirel
-         - eflow_charge
-         - eflow_pt
-         - eflow_eta
-         - eflow_phi
-         - eflow_type
-         - eflow_cos_phi_lab
-         - eflow_abs_delta_phi_ll_lab
-         - eflow_cosTheta_n 
-         - eflow_cosTheta_r 
-         - eflow_cosTheta_k 
-         - eflow_cosTheta_r_star
-         - eflow_cosTheta_k_star
-         - eflow_xi_nn
-         - eflow_xi_rr
-         - eflow_xi_kk
-         - eflow_xi_nr_plus 
-         - eflow_xi_nr_minus
-         - eflow_xi_rk_plus 
-         - eflow_xi_rk_minus
-         - eflow_xi_nk_plus 
-         - eflow_xi_nk_minus
-         - eflow_cos_phi
+         - eflow_truth_ctGIm_lin
+         - eflow_truth_ctGIm_quad
    eflow_mask:
-      length: 200
+      length: 100
       vars: 
          - eflow_const_mask
 
@@ -154,7 +54,7 @@ labels:
       # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        target : ctGIm_coeff
+        ctGIm_coeffs : ctGIm_coeff
 
 observers:
    - parton_lepTop_pt
