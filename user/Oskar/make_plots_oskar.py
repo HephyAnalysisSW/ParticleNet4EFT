@@ -19,32 +19,32 @@ from matplotlib import colors
 from matplotlib.backends.backend_pdf import PdfPages
 
 
-BASE_DIR = pathlib.Path(__file__).parents[0].resolve()
+BASE_DIR = pathlib.Path("/users/oskar.rothbacher/CMS/ParticleNet4EFT").resolve()
 USER = os.getlogin()
 
-DEFAULT_CONFIG = BASE_DIR / "data" / "for_plots" / "wilson_plot.yaml"
+# DEFAULT_CONFIG = BASE_DIR / "data" / "for_plots" / "wilson_plot.yaml"
 
 DEFAULT_PLOT_DIRECTORY = pathlib.Path("/groups/hephy/cms") / USER / "www/weaver"
 DEFAULT_MODEL_PATH = BASE_DIR / "models"
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "-c",
-    "--config-file",
-    default=DEFAULT_CONFIG,
-    help="""
-    data config YAML file, relative path to this script or absoulte path
-    groups: data_path, cut, weights_info, branches: weight_coeff, any other groupings
-    """,
-)
-parser.add_argument(
-    "-n",
-    "--nr-files",
-    default=10,
-    type=int,
-    help="number of files to read",
-)
+# parser.add_argument(
+#     "-c",
+#     "--config-file",
+#     default=DEFAULT_CONFIG,
+#     help="""
+#     data config YAML file, relative path to this script or absoulte path
+#     groups: data_path, cut, weights_info, branches: weight_coeff, any other groupings
+#     """,
+# )
+# parser.add_argument(
+#     "-n",
+#     "--nr-files",
+#     default=10,
+#     type=int,
+#     help="number of files to read",
+# )
 parser.add_argument(
     "-o",
     "--output",
@@ -57,9 +57,14 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument(
-    "--interactive",
-    action="store_true",
+    "--epoch",
+    type=str,
+    default="last",
 )
+# parser.add_argument(
+#     "--interactive",
+#     action="store_true",
+# )
 
 args = parser.parse_args()
 
@@ -85,22 +90,22 @@ def main(args):
         print(f"No predictions for {args.model_name} exist.")
         sys.exit()
 
-    if args.interactive:
-        global weight_helper, pred_out
+    # if args.interactive:
+    #     global weight_helper, pred_out
 
-    with open(args.config_file, "r") as c:
-        config = yaml.safe_load(c)
+    # with open(args.config_file, "r") as c:
+    #     config = yaml.safe_load(c)
 
-    data_files = [config["data_path"].format(i) for i in range(args.nr_files)]
-    branch_grouped_dict = config["branches"]
-    branch_list = list(itertools.chain(*branch_grouped_dict.values()))
-    cut = config.get("cut")
+    # data_files = [config["data_path"].format(i) for i in range(args.nr_files)]
+    # branch_grouped_dict = config["branches"]
+    # branch_list = list(itertools.chain(*branch_grouped_dict.values()))
+    # cut = config.get("cut")
 
-    if args.nr_files != 0:
-        data = uproot.concatenate(data_files, branches=branch_list, cut=cut)
-        weight_data = ak.to_numpy(data[config["branches"]["weight_coeff"][0]])
+    # if args.nr_files != 0:
+    #     data = uproot.concatenate(data_files, branches=branch_list, cut=cut)
+    #     weight_data = ak.to_numpy(data[config["branches"]["weight_coeff"][0]])
 
-    weight_helper = WeightHelper(("ctWRe",), order=2)
+    # weight_helper = WeightHelper(("ctWRe",), order=2)
 
     # wSM = weight_helper.make_eft_weights(weight_data, order=0, ctWRe=0)
     # wEFT = weight_helper.make_eft_weights(weight_data, order=2, ctWRe=1)
@@ -122,10 +127,18 @@ def main(args):
     # sys.exit()
 
     try:
-        pred_out = dict(
-            ak0.load(str(list(args.model_name.glob("predict_output/*at*.awkd"))[-1]))          # last epoch
-            # ak0.load(args.model_name / "predict_output" / "best_epoch_prediction.awkd")   # 'best' epoch
-        )
+        if args.epoch=="last":
+            pred_out = dict(
+                ak0.load(str(list(args.model_name.glob("predict_output/*at*.awkd"))[-1]))          # last epoch
+            )
+        elif args.epoch=="best":
+            pred_out = dict(
+                ak0.load(args.model_name / "predict_output" / "best_epoch_prediction.awkd")   # 'best' epoch
+            )
+        else:
+            pred_out = dict(
+                ak0.load(args.model_name / "predict_output" / f"prediction_at_epoch_{args.epoch}.awkd")   #  epoch
+            )
     except:
         sys.exit()
 
@@ -656,8 +669,8 @@ def pred_target_hist2d(
     ax.plot(*range)
     #ax.colorbar() need to figure out how to use with Axes style
     ax.set_title(label, fontsize="small")
-    ax.set_xlabel("prediction", fontsize="x-small")
-    ax.set_ylabel("target", fontsize="x-small")
+    ax.set_xlabel("target", fontsize="x-small")
+    ax.set_ylabel("prediction", fontsize="x-small")
     ax.tick_params("both", labelsize="xx-small")
     ax.tick_params("y", labelrotation=90)
 

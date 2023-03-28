@@ -1,18 +1,16 @@
 import torch
-from utils.nn.model.ParticleNetTopDecay import ParticleNetTagger
+from utils.nn.model.ParticleNetGlobal import ParticleNetTagger
 from torch import Tensor
 import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (4, (8, 8, 8)),
         (4, (16, 16, 16)),
+        (4, (32, 32, 32)),
         ]
-    pnet_fc_params = [(32, 0.1)]
-    freeze_pnet = False
-    globals_fc_params = [(300, 0.1), (300, 0.1), (100, 0.1)]
-    freeze_global_fc = False
-    joined_fc_params = [(64, 0.1)]
+    fc_params = [(64, 0.1)]
+    fc_global_params = [(200, 0.1), (200, 0.1)]
+    fc_combined_params = [(64, 0.1)]
     use_fusion = True
 
     eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
@@ -21,11 +19,9 @@ def get_model(data_config, **kwargs):
     num_classes = 2 #len(data_config.label_value)
     model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
                               conv_params=kwargs.get("conv_params", conv_params),
-                              pnet_fc_params=kwargs.get("pnet_fc_params", pnet_fc_params),
-                              freeze_pnet=kwargs.get('freeze_pnet', freeze_pnet),
-                              globals_fc_params=kwargs.get("globals_fc_params",globals_fc_params),
-                              freeze_global_fc=kwargs.get('freeze_global_fc', freeze_global_fc),
-                              joined_fc_params=kwargs.get("joined_fc_params", joined_fc_params),
+                              fc_params=kwargs.get("fc_params", fc_params),
+                              fc_global_params=kwargs.get("globals_fc_params", fc_global_params),
+                              fc_combined_params=kwargs.get("joined_fc_params", fc_combined_params),
                               use_fusion=kwargs.get("use_fusion", use_fusion),
                               use_fts_bn=kwargs.get('use_fts_bn', True),
                               use_counts=kwargs.get('use_counts', True),
