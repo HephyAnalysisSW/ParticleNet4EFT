@@ -1,34 +1,23 @@
-#!/bin/bash -x
+#!/bin/bash
 #
-# Setup GPU based environment
+# Setup GPU based environment for weaver from frozen environment
 #
-ENV_NAME="test-weaver"
+# Usage:
+#   create_env.sh [environment name]
+#
 
+ENV_NAME=${1:-"weaver"}
+CMD="conda"
+# CMD="mamba"
+CHANNELS="-c pytorch -c nvidia -c conda-forge"
 
-. /software/2020/software/mamba/22.11.1-4/etc/profile.d/conda.sh
-. /software/2020/software/mamba/22.11.1-4/etc/profile.d/mamba.sh
+eval $(conda shell.bash hook)
 
-if [ "$CONDA_DEFAULT_ENV" != "base" ]
-then
-    conda activate base
-fi
+set -ex
 
-# root has to be installed in a seperate step from the rest due to bug in install scriptlet
-mamba create -y -n "$ENV_NAME" python=3.9 root root_numpy
-if [ $? -ne 0 ]
-then
-  echo "mamba failed"
-  exit 1
-fi
-
-mamba install -y -n "$ENV_NAME" -c pytorch -c nvidia --file=environment.txt
-if [ $? -ne 0 ]
-then
-  echo "mamba failed"
-  exit 1
-fi
+# install root first to avoid conda.link error
+$CMD create  -y -n "$ENV_NAME" $CHANNELS python=3.10 root=6.28.0
+$CMD install -y -n "$ENV_NAME" $CHANNELS --file environment-list.txt
 
 conda activate "$ENV_NAME"
-
-pip install --upgrade pip
 pip install -r requirements.txt

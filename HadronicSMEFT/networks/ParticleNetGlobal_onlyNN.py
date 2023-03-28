@@ -5,17 +5,17 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (32, 32, 32)),
-        (16, (64, 64, 64)),
-        (16, (128, 128, 128)),
+        #(16, (32, 32, 32)),
+        #(16, (64, 64, 64)),
+        #(16, (128, 128, 128)),
         #(16, (256, 256, 256)),
         ]
-    fc_params = [(256, 0.01)]
-    fc_global_params = [(256,0.01)] 
-    fc_combined_params = [(256,0.01)]# (256, 0.1)]#, (256, 0.1)] 
+    fc_params = []#[(256, 0.01)]
+    fc_global_params = []#[(256,0.01)] 
+    fc_combined_params = [(5,0.0)]# (256, 0.1)]#, (256, 0.1)] 
     use_fusion = True
-    batch_norm = False #EdgeConv and feature conv batch norm
-    global_batch_norm = False #batch normalisation of global features 
+    batch_norm = True #EdgeConv and feature conv batch norm
+    global_batch_norm = False
     conv_dim = 12 # dimension of feature convolution layer (default:32)
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])

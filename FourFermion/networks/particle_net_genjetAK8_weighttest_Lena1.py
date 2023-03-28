@@ -4,8 +4,8 @@ from torch import Tensor
 import math
 
 def get_model(data_config, **kwargs):
-    conv_params =  [(5, (10,10,10))]         # Note to myself: first parameter in conv_params is (probably) the number of connected neighbours
-    fc_params = [(30, 0.0)]           # fully connected layer (hidden_size, drop_out) after GNN for array based input
+    conv_params =  []         # Note to myself: first parameter in conv_params is (probably) the number of connected neighbours
+    fc_params = []           # fully connected layer (hidden_size, drop_out) after GNN for array based input
     fc_global_params = [(80, 0.0),(45, 0.0)]    # fully connected layer (hidden_size, drop_out) for global features only
     fc_combined_params = [(5,0.0)]              # fully connected layer (hidden_size, drop_out) for combined input from fc and fc_global
     use_fusion = True

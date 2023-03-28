@@ -1,0 +1,21 @@
+ctGIm:
+    prefix:        /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm/ctGIm
+    network-config: HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py 
+    epochs:
+        - 0
+        - 10
+        - 20
+        - 30
+        - 40
+        - 50
+        - 60
+        - 70
+        - 80
+        - 90
+        - 100
+        - 110
+        - 120
+        - 130
+        - 140
+        - 150
+        - 160

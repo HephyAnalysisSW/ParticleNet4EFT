@@ -1,0 +1,221 @@
+#Out[2]: '(nrecoLep>=1)&&(recoLep_pt[0]>25)&&Sum$(recoLep_pt>25)<=1&&delphesJet_pt>=500&&delphesJet_dR_hadTop_maxq1q2b<0.8&&nrecoJet>=4&&nBTag>=1'
+
+selection:
+   ### use `&`, `|`, `~` for logical operations on numpy arrays
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   (nrecoLep>=1) & (delphesJet_pt >= 500) & (delphesJet_dR_hadTop_maxq1q2b < 0.8) & (nrecoJet >= 4) #& (nBTag >= 1)
+test_time_selection:
+   ### selection to apply at test time (i.e., when running w/ --predict)
+   #(genJet_pt>300) & (genJet_pt<2500) & (genJet_nConstituents>0)
+   (nrecoLep>=1) & (delphesJet_pt >= 500) & (delphesJet_dR_hadTop_maxq1q2b < 0.8) & (nrecoJet >= 4) #& (nBTag >= 1)
+
+new_variables:
+   ### [format] name: formula
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   top_daughter_partons_const_mask:     awkward.JaggedArray.ones_like(top_daughter_partons_etarel)
+   #top_daughter_partons_const_mask:    np.concatenate( ( np.array([ [1 for _ in range(eflow_etarel.shape[1])] ], dtype='float' ), np.zeros((eflow_etarel.shape[0]-1,eflow_etarel.shape[1])))) 
+
+preprocess:
+  ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
+  ### [note]: `[var]_mask` will not be transformed even if `method=auto`
+  method: manual
+  ### data_fraction: fraction of events to use when calculating the mean/scale for the standardization
+  data_fraction: 
+
+inputs:
+   global_features:
+      length: 1
+      vars:
+         - parton_lepTop_pt
+#         - parton_lepTop_eta
+         - parton_lepTop_phi
+         - parton_lepTop_lep_pt
+         - parton_lepTop_lep_eta
+         - parton_lepTop_lep_phi
+         - parton_lepTop_nu_pt
+         - parton_lepTop_nu_phi
+         - parton_lepTop_b_pt
+         - parton_lepTop_b_eta
+         - parton_lepTop_b_phi
+         - parton_lepTop_W_pt
+#         - parton_lepTop_W_eta
+         - parton_lepTop_W_phi
+#         - parton_nu_eta
+         - delphesJet_pt
+         - delphesJet_eta
+         - delphesJet_phi
+#         - delphesJet_nConstituents
+         - delphesJet_SDmass
+         - delphesJet_SDsubjet0_deltaEta
+         - delphesJet_SDsubjet0_deltaPhi
+         - delphesJet_SDsubjet0_deltaR
+         - delphesJet_SDsubjet0_mass
+         - delphesJet_SDsubjet1_deltaEta
+         - delphesJet_SDsubjet1_deltaPhi
+         - delphesJet_SDsubjet1_deltaR
+         - delphesJet_SDsubjet1_mass
+         - delphesJet_tau1
+         - delphesJet_tau2
+         - delphesJet_tau3
+         - delphesJet_tau4
+         - delphesJet_tau21
+         - delphesJet_tau32
+         - delphesJet_ecf1
+         - delphesJet_ecf2
+         - delphesJet_ecf3
+         - delphesJet_ecfC1
+         - delphesJet_ecfC2
+         - delphesJet_ecfC3
+         - delphesJet_ecfD
+         - delphesJet_ecfDbeta2
+         - delphesJet_ecfM1
+         - delphesJet_ecfM2
+         - delphesJet_ecfM3
+         - delphesJet_ecfM1beta2
+         - delphesJet_ecfM2beta2
+         - delphesJet_ecfM3beta2
+         - delphesJet_ecfN1
+         - delphesJet_ecfN2
+         - delphesJet_ecfN3
+         - delphesJet_ecfN1beta2
+         - delphesJet_ecfN2beta2
+         - delphesJet_ecfN3beta2
+         - delphesJet_ecfU1
+         - delphesJet_ecfU2
+         - delphesJet_ecfU3
+         - delphesJet_ecfU1beta2
+         - delphesJet_ecfU2beta2
+         - delphesJet_ecfU3beta2
+
+   constituents_points:
+      length: 200
+      vars: 
+         - top_daughter_partons_etarel
+         - top_daughter_partons_phirel
+   eflow_features:
+      length: 200
+      vars: 
+         - top_daughter_partons_etarel
+         - top_daughter_partons_phirel
+         - top_daughter_partons_pt
+         - top_daughter_partons_pdgId
+         - top_daughter_partons_eta
+         - top_daughter_partons_phi
+         - top_daughter_partons_cos_phi_lab
+         - top_daughter_partons_abs_delta_phi_ll_lab
+         - top_daughter_partons_cosTheta_n 
+         - top_daughter_partons_cosTheta_r 
+         - top_daughter_partons_cosTheta_k 
+         - top_daughter_partons_cosTheta_r_star
+         - top_daughter_partons_cosTheta_k_star
+         - top_daughter_partons_xi_nn
+         - top_daughter_partons_xi_rr
+         - top_daughter_partons_xi_kk
+         - top_daughter_partons_xi_nr_plus 
+         - top_daughter_partons_xi_nr_minus
+         - top_daughter_partons_xi_rk_plus 
+         - top_daughter_partons_xi_rk_minus
+         - top_daughter_partons_xi_nk_plus 
+         - top_daughter_partons_xi_nk_minus
+         - top_daughter_partons_cos_phi
+   eflow_mask:
+      length: 200
+      vars: 
+         - top_daughter_partons_const_mask
+
+labels:
+   ### type can be `simple`, `custom`
+   ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
+   ### [option 2] otherwise use `custom` to define the label, then `value` is a map
+   # type: custom
+   # value: 
+      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
+   type: custom
+   value:
+        ctGRe_coeffs : ctGRe_coeff
+
+observers:
+   - parton_lepTop_pt
+#       - parton_lepTop_eta
+   - parton_lepTop_phi
+   - parton_lepTop_lep_pt
+   - parton_lepTop_lep_eta
+   - parton_lepTop_lep_phi
+   - parton_lepTop_nu_pt
+   - parton_lepTop_nu_phi
+   - parton_lepTop_b_pt
+   - parton_lepTop_b_eta
+   - parton_lepTop_b_phi
+   - parton_lepTop_W_pt
+#       - parton_lepTop_W_eta
+   - parton_lepTop_W_phi
+#       - parton_nu_eta
+   - delphesJet_pt
+   - delphesJet_eta
+   - delphesJet_phi
+#       - delphesJet_nConstituents
+   - delphesJet_SDmass
+   - delphesJet_SDsubjet0_deltaEta
+   - delphesJet_SDsubjet0_deltaPhi
+   - delphesJet_SDsubjet0_deltaR
+   - delphesJet_SDsubjet0_mass
+   - delphesJet_SDsubjet1_deltaEta
+   - delphesJet_SDsubjet1_deltaPhi
+   - delphesJet_SDsubjet1_deltaR
+   - delphesJet_SDsubjet1_mass
+   - delphesJet_tau1
+   - delphesJet_tau2
+   - delphesJet_tau3
+   - delphesJet_tau4
+   - delphesJet_tau21
+   - delphesJet_tau32
+   - delphesJet_ecf1
+   - delphesJet_ecf2
+   - delphesJet_ecf3
+   - delphesJet_ecfC1
+   - delphesJet_ecfC2
+   - delphesJet_ecfC3
+   - delphesJet_ecfD
+   - delphesJet_ecfDbeta2
+   - delphesJet_ecfM1
+   - delphesJet_ecfM2
+   - delphesJet_ecfM3
+   - delphesJet_ecfM1beta2
+   - delphesJet_ecfM2beta2
+   - delphesJet_ecfM3beta2
+   - delphesJet_ecfN1
+   - delphesJet_ecfN2
+   - delphesJet_ecfN3
+   - delphesJet_ecfN1beta2
+   - delphesJet_ecfN2beta2
+   - delphesJet_ecfN3beta2
+   - delphesJet_ecfU1
+   - delphesJet_ecfU2
+   - delphesJet_ecfU3
+   - delphesJet_ecfU1beta2
+   - delphesJet_ecfU2beta2
+   - delphesJet_ecfU3beta2
+   - p_C
+   - top_daughter_partons_etarel
+   - top_daughter_partons_phirel
+   - top_daughter_partons_pt
+   - top_daughter_partons_eta
+   - top_daughter_partons_phi
+   - top_daughter_partons_cos_phi_lab
+   - top_daughter_partons_abs_delta_phi_ll_lab
+   - top_daughter_partons_cosTheta_n 
+   - top_daughter_partons_cosTheta_r 
+   - top_daughter_partons_cosTheta_k 
+   - top_daughter_partons_cosTheta_r_star
+   - top_daughter_partons_cosTheta_k_star
+   - top_daughter_partons_xi_nn
+   - top_daughter_partons_xi_rr
+   - top_daughter_partons_xi_kk
+   - top_daughter_partons_xi_nr_plus 
+   - top_daughter_partons_xi_nr_minus
+   - top_daughter_partons_xi_rk_plus 
+   - top_daughter_partons_xi_rk_minus
+   - top_daughter_partons_xi_nk_plus 
+   - top_daughter_partons_xi_nk_minus
+   - top_daughter_partons_cos_phi
+
