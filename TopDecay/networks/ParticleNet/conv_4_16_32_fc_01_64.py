@@ -1,5 +1,5 @@
 import torch
-from utils.nn.model.ParticleNetTopDecay import ParticleNetTagger
+from utils.nn.model.ParticleNet import ParticleNetTagger
 from torch import Tensor
 import math
 

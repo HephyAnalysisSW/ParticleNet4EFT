@@ -156,20 +156,22 @@ class DgnnBlock(nn.Module):
         else:
             self.out_chn = conv_params[-1][1][-1]
         
-    def forward(self, pts, fts, mask=None):
+    def forward(self, points, features, mask=None):
         if mask is None:
             mask = (fts.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
 
-        pts *= mask
-        fts *= mask
+        points *= mask
+        features *= mask
 
         if self.use_fts_bn:
-            fts = self.bn_fts(fts) * mask
+            fts = self.bn_fts(features) * mask
+        else:
+            fts = features
 
         coord_shift = (mask == 0) * 1e9
         outputs = []
         for idx, conv in enumerate(self.edge_convs):
-            pts = (pts if idx == 0 else fts) + coord_shift
+            pts = (points if idx == 0 else fts) + coord_shift
             fts = conv(pts, fts) * mask
             if self.use_fusion:
                 outputs.append(fts)
@@ -267,7 +269,7 @@ class ParticleNet(nn.Module):
         # Global features fully connected layers
         self.freeze_global_fc = freeze_global_fc
         self.globals_fc = FullyConnectedBlock(global_dims, globals_fc_params,
-                                               input_transform=nn.Flatten(start_dim=-2))    # (N,C,1) -> (N,D)
+                                               input_transform=nn.Flatten(start_dim=-2))    # (N,C,1) -> (N,C)
         # freeze the global features fc layers
         if self.freeze_global_fc:
             self.globals_fc.requires_grad_(False)
@@ -288,7 +290,7 @@ class ParticleNet(nn.Module):
 
         # joined_fc
         output = self.joined_fc(
-            torch.cat([dummy_pnet_output, global_fts], dim=-1)
+            torch.cat((dummy_pnet_output, global_fts), dim=-1)
             )
         
         return output
@@ -325,25 +327,59 @@ class ParticleNet(nn.Module):
         if self.freeze_global_fc:
             return self._forward_pnet_only(points, features, global_features, mask)
 
+        # print('''
+        # point size, feature size
+
+
+
+        # ''', points.size(), features.size())
         # Dgnn layers including fts_bn and masking
         particle_fts = self.dgnn_block(points, features, mask)
 
+        # print('''
+        # dgnn out size
+
+
+
+        # ''', particle_fts.size())
+
         # global average pooling
         particle_fts = self.global_average_pooling(particle_fts, mask if self.use_counts else None)
+        # print('''
+        # after pooling size
 
+
+
+        # ''', particle_fts.size())
         # pnet_fc
         particle_fts = self.pnet_fc(particle_fts)
+        # print('''
+        # global size
 
+
+
+        # ''', global_features.size())
         # globals_fc
         global_fts = self.globals_fc(global_features)
+        # print('''
+        # global fc out size
 
+
+
+        # ''', global_fts.size())
         # joined_fc
         output = self.joined_fc(
-            torch.cat([particle_fts, global_fts], dim=-1)
+            torch.cat((particle_fts, global_fts), dim=-1)
             )
+        # print('''
+        # out size
 
+
+
+        # ''', output.size())
         if self.for_inference:
             output = torch.softmax(output, dim=1)
+
 
         return output
 

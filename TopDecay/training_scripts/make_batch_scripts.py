@@ -78,7 +78,10 @@ for i in range(n_train_scripts):
         auto_name = auto_name.replace(char,"")
     auto_name = auto_name.replace(",","_")
     auto_name = auto_name[:-1]
-    train_options_var["--model-prefix"][i] = train_options_var["--model-prefix"][i].replace("auto", auto_name)        
+    train_options_var["--model-prefix"][i] = train_options_var["--model-prefix"][i].replace("auto", auto_name)
+    if "--tensorboard" in train_options_var:
+        train_options_var["--tensorboard"][i] = train_options_var["--tensorboard"][i].replace("auto", auto_name)
+            
 
 # get model names from model prefix
 model_names = []
@@ -93,13 +96,15 @@ for i in range(n_train_scripts):
     train_py = f"python train.py \\{os.linesep}"
 
     for name, value in train_options_var.items():
-        train_py += f"{name} {value[i]} \\{os.linesep}"
+        if value[i] is not None:
+            train_py += f"{name} {value[i]} \\{os.linesep}"
 
     for name, value in train_options_const.items():
         train_py += f"{name} {value[i]} \\{os.linesep}"
 
     for name, value in network_options.items():
-        train_py += f"--network-option {name} '{value[i]}' \\{os.linesep}"
+        if value[i] is not None:
+            train_py += f"--network-option {name} '{value[i]}' \\{os.linesep}"
 
     # remove the line continuation from the last line of the script
     len_line_cont = len(f" \\{os.linesep}")
