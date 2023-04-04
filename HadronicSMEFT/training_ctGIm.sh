@@ -1,6 +1,6 @@
 #    --in-memory\
 ipython -i train.py --\
-    --data-train '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v10/TT01j_HT800_ext_comb/TT01j_HT800_ext_comb_0.root'\
+    --data-train '/scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v10/TT01j_HT800_ext_comb/TT01j_HT800_ext_comb_*.root'\
     --data-config    HadronicSMEFT/data/delphesJet_ctGIm.yaml\
     --network-config HadronicSMEFT/networks/ParticleNetGlobal_likelihoodFree.py\
     --model-prefix   /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm/ctGIm\
@@ -12,5 +12,5 @@ ipython -i train.py --\
     --fetch-step 10\
     --regression-mode\
     --weighting\
-    --gpus ""
-#    --load-epoch -1
+    --gpus 0\
+    --load-epoch -1

@@ -225,6 +225,13 @@ def train_load(args):
     if args.in_memory and (args.steps_per_epoch is None or args.steps_per_epoch_val is None):
         raise RuntimeError('Must set --steps-per-epoch when using --in-memory!')
 
+    #print(                         "load_range_and_fraction",(train_range, args.data_fraction),
+    #                               "file_fraction",args.file_fraction,
+    #                               "fetch_by_files",args.fetch_by_files,
+    #                               "fetch_step",args.fetch_step,
+    #                               "infinity_mode",args.steps_per_epoch is not None,
+    #                               "in_memory",args.in_memory,
+    #                               "name",'train' + ('' if args.local_rank is None else '_rank%d' % args.local_rank))
     train_data = SimpleIterDataset(train_file_dict, args.data_config, for_training=True,
                                    load_range_and_fraction=(train_range, args.data_fraction),
                                    file_fraction=args.file_fraction,
@@ -241,6 +248,10 @@ def train_load(args):
                                  infinity_mode=args.steps_per_epoch_val is not None,
                                  in_memory=args.in_memory,
                                  name='val' + ('' if args.local_rank is None else '_rank%d' % args.local_rank))
+    #print (                   "batch_size",args.batch_size, "drop_last",True, "pin_memory",True,
+    #                          "num_workers",min(args.num_workers, int(len(train_files) * args.file_fraction)),
+    #                          "persistent_workers",args.num_workers > 0 and args.steps_per_epoch is not None)
+
     train_loader = DataLoader(train_data, batch_size=args.batch_size, drop_last=True, pin_memory=True,
                               num_workers=min(args.num_workers, int(len(train_files) * args.file_fraction)),
                               persistent_workers=args.num_workers > 0 and args.steps_per_epoch is not None)
@@ -250,21 +261,6 @@ def train_load(args):
     data_config = train_data.config
     train_input_names = train_data.config.input_names
     train_label_names = train_data.config.label_names
-
-
-    #### test for nans, number of batches
-    #batches = 0
-    #total_nans = 0
-    #for batch in train_loader:
-    #    batch_nans = torch.isnan(batch[0]['global_features']).sum()
-    #    total_nans += batch_nans
-    #    print(batch[0]['global_features'].size(), "batch_nans", batch_nans)
-    #    batches += 1
-    #    print(batches)
-    #print(f'# of batches: {batches}')
-    #print(f'batch size: {args.batch_size}')
-    #print(f'total # of nans: {total_nans}')
-    #quit()
 
     return train_loader, val_loader, data_config, train_input_names, train_label_names
 

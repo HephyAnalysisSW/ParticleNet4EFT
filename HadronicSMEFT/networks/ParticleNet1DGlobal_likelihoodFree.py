@@ -5,14 +5,14 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (32, 32, 32)),
-        (16, (64, 64, 64)),
-        (16, (128, 128, 128)),
+        (16, (16, 16, 16)),
+        (16, (16, 16, 16)),
+        (16, (16, 16, 16)),
         #(16, (256, 256, 256)),
         ]
     fc_params = [(256, 0.01)]
     fc_global_params = [(256,0.01)] 
-    fc_combined_params = [(256,0.01)]# (256, 0.1)]#, (256, 0.1)] 
+    fc_combined_params = [(256,0.01), (256, 0.1)]#, (256, 0.1)] 
     use_fusion = True
     batch_norm = False #EdgeConv and feature conv batch norm
     global_batch_norm = False #EdgeConv and feature conv batch norm

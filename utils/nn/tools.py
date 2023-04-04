@@ -470,7 +470,6 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
     with tqdm.tqdm(train_loader) as tq:
         for X, y, _ in tq:
             inputs = [X[k].to(dev) for k in data_config.input_names]
-            #label = y[data_config.label_names[0]].float()
 
             label = y[data_config.label_names[0]].float() 
             num_examples = label.shape[0]
@@ -488,14 +487,8 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
                 loss = loss_func(preds, label)
             if grad_scaler is None:
                 loss.backward()
-                opt.step()
             else:
                 grad_scaler.scale(loss).backward()
-                grad_scaler.step(opt)
-                grad_scaler.update()
-
-            if scheduler and getattr(scheduler, '_update_per_step', False):
-                scheduler.step()
 
             loss = loss.item()
             num_batches += 1
@@ -541,6 +534,16 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
                 break
 
+        _logger.info( "Updating model" )
+        if grad_scaler is None:
+            opt.step()
+        else:
+            grad_scaler.step(opt)
+            grad_scaler.update()
+
+        if scheduler and getattr(scheduler, '_update_per_step', False):
+            scheduler.step()
+
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
 
@@ -582,6 +585,7 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
                 label = y[data_config.label_names[0]].float()
                 num_examples = label.shape[0]
                 label = label.to(dev)
+                #print ( [ip[:1] for ip in inputs] )
                 model_output = model(*inputs)
                 preds = model_output.squeeze().float()
 

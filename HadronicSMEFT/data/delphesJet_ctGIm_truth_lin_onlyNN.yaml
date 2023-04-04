@@ -14,8 +14,8 @@ new_variables:
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
    eflow_const_mask: awkward.JaggedArray.ones_like(eflow_etarel)
 
-   truth_training: ctGIm_coeff[:,:2] # needs to have weights, then the coefficient
-   truth_lin:  ctGIm_coeff[:,1]
+   truth_label: ctGIm_coeff[:,:2] # needs to have weights, then the coefficient
+   truth_input: ctGIm_coeff[:,1]
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -25,10 +25,26 @@ preprocess:
   data_fraction: 
 
 inputs:
-   features:
+   global_features:
       length: 1
       vars:
-         - truth_lin
+           - truth_input 
+           #- parton_xi_nr_minus
+
+   constituents_points:
+      length: 200
+      vars: 
+         - eflow_etarel
+         - eflow_phirel
+   eflow_features:
+      length: 200
+      vars: 
+         - eflow_etarel
+         - eflow_phirel
+   eflow_mask:
+      length: 200
+      vars: 
+         - eflow_const_mask
 
 labels:
    ### type can be `simple`, `custom`
@@ -39,7 +55,7 @@ labels:
       # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_eflow_mass) 
    type: custom
    value:
-        ctGIm_lin_coeff : truth_training
+        ctGIm_lin_coeff : truth_label
 
 observers:
    - parton_lepTop_pt

@@ -10,11 +10,12 @@ def get_model(data_config, **kwargs):
         #(16, (256, 256, 256)),
         ]
     fc_params = [(32, 0.)]
-    fc_global_params = None 
-    fc_combined_params = None#[(32, 0.),]# (256, 0.1)]#, (256, 0.1)] 
+    fc_global_params = [] 
+    fc_combined_params = []#[(32, 0.),]# (256, 0.1)]#, (256, 0.1)] 
     use_fusion = False
     batch_norm = False #EdgeConv and feature conv batch norm
     conv_dim = 4 # dimension of feature convolution layer (default:32)
+    edge_conv_activation = True
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
     # training linear and quadratic together:
@@ -25,6 +26,7 @@ def get_model(data_config, **kwargs):
                               use_fusion=use_fusion,
                               batch_norm=batch_norm,
                               conv_dim=conv_dim,
+                              edge_conv_activation=edge_conv_activation,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
                               use_counts=kwargs.get('use_counts', True),
                               constituents_input_dropout=kwargs.get('constituents_input_dropout', None),

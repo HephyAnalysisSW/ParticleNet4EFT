@@ -1,5 +1,0 @@
-ctGIm-truth:
-    prefix:         /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/models/ctGIm-truth-onlyNN-debug-v2/ctGIm-truth
-    network-config: HadronicSMEFT/networks/ParticleNetNN_likelihoodFree.py
-    epochs:
-        - all

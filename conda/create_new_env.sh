@@ -9,7 +9,7 @@
 ENV_NAME=${1:-"weaver"}
 # CMD="conda"
 CMD="mamba"
-CHANNELS="-c pytorch -c nvidia -c conda-forge"
+CHANNELS="-c pytorch -c nvidia -c conda-forge -c pyg -c ostrokach-forge"
 
 
 # allow conda in shell
@@ -19,7 +19,7 @@ set -ex
 
 # install root first to avoid conda.link error
 $CMD create -y -n "$ENV_NAME" $CHANNELS python=3.10 root=6.28.0 
-$CMD install -y -n "$ENV_NAME" $CHANNELS --file environment.txt
+$CMD install -y -n "$ENV_NAME" $CHANNELS --file environment2.txt
 
 # save environment
 conda list -n "$ENV_NAME" --export > environment-list.txt
