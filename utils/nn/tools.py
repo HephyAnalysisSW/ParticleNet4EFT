@@ -93,7 +93,7 @@ def train_classification(model, loss_func, opt, scheduler, train_loader, dev, ep
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
                 # tensorboard network visualization
-                if epoch==0 and num_batches==1:
+                if epoch==tb_helper.tb_start_epoch and num_batches==1:
                     tb_helper.writer.add_graph(model, inputs)
 
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
@@ -339,7 +339,7 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, epoch,
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
                 # tensorboard network visualization
-                if epoch==0 and num_batches==1:
+                if epoch==tb_helper.tb_start_epoch and num_batches==1:
                     tb_helper.writer.add_graph(model, inputs)
 
 
@@ -535,7 +535,7 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
                 # tensorboard network visualization
-                if epoch==0 and num_batches==1:
+                if epoch==tb_helper.tb_start_epoch and num_batches==1:
                     tb_helper.writer.add_graph(model, inputs)
 
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
@@ -658,8 +658,9 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
 
 class TensorboardHelper(object):
 
-    def __init__(self, tb_log_dir, tb_custom_fn):
+    def __init__(self, tb_log_dir, tb_custom_fn, tb_start_epoch):
         self.tb_log_dir = tb_log_dir
+        self.tb_start_epoch = tb_start_epoch
         from torch.utils.tensorboard import SummaryWriter
         self.writer = SummaryWriter(log_dir=self.tb_log_dir)
         _logger.info('Create Tensorboard summary writer with log_dir %s' % self.tb_log_dir)

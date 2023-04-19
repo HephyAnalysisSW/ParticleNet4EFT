@@ -752,7 +752,8 @@ def main(args):
 
     if args.tensorboard:
         from utils.nn.tools import TensorboardHelper
-        tb = TensorboardHelper(tb_log_dir=args.tensorboard, tb_custom_fn=args.tensorboard_custom_fn)
+        tb = TensorboardHelper(tb_log_dir=args.tensorboard, tb_custom_fn=args.tensorboard_custom_fn,
+                               tb_start_epoch = 0 if args.load_epoch is None else args.load_epoch + 1)
     else:
         tb = None
 
