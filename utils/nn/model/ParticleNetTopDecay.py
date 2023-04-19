@@ -317,10 +317,10 @@ class ParticleNet(nn.Module):
     def _forward_pnet_only(self, points, features, global_features, mask=None):
 
          # Dgnn layers including fts_bn and masking
-        particle_fts = self.dgnn_block(points, features, mask)
+        particle_fts, mask_through = self.dgnn_block(points, features, mask)
 
         # global average pooling
-        particle_fts = self.global_average_pooling(particle_fts, mask if self.use_counts else None)
+        particle_fts = self.global_average_pooling(particle_fts, mask_through if self.use_counts else None)
 
         # pnet_fc
         particle_fts = self.pnet_fc(particle_fts)
