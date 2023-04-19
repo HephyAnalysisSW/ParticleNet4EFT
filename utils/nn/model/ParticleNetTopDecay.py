@@ -191,10 +191,6 @@ class FCLayer(nn.Sequential):
         if not use_bn:
             fc_layer = [mod for mod in fc_layer if not isinstance(mod, nn.BatchNorm1d)]
         super().__init__(*fc_layer)
-    #     self.fc_layer = nn.Sequential(*fc_layer)
-        
-    # def forward(self, input):
-    #     return self.fc_layer(input)
 
 class FullyConnectedBlock(nn.Sequential):
     def __init__(self,
@@ -216,12 +212,6 @@ class FullyConnectedBlock(nn.Sequential):
         ch_params = [(in_chn, None)] + self.layer_params
         for (in_ch, _), (out_ch, drop_rate) in zip(ch_params[:-2], ch_params[1:-1]):
             layers.append(FCLayer(in_ch, out_ch, drop_rate, use_bn, activation_function))
-        #     layers.append(nn.Sequential(
-        #         nn.Linear(in_ch, out_ch),
-        #         nn.BatchNorm1d(out_ch),
-        #         nn.Dropout(drop_rate),
-        #         activation_function,
-        #     ))
         
         # append final layer without activation if is_output_layer
         if len(ch_params) >= 2:
@@ -236,10 +226,6 @@ class FullyConnectedBlock(nn.Sequential):
                 layers.insert(0, mod)
         
         super().__init__(*layers)
-    #     self.fc_block = nn.Sequential(*layers)
-
-    # def forward(self, input):
-    #     return self.fc_block(input)
 
 
 class GlobalAveragePooling(nn.Module):
