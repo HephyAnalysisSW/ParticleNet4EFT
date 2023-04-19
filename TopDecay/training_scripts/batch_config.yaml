@@ -2,7 +2,7 @@ sbatch_args:
   --nodes: '1'
   --partition: g
   --gres: gpu:1
-  --cpus-per-task: '4'
+  --cpus-per-task: '6'
   --mem-per-gpu: 40G
   --qos: short
   --time: 08:00:00
@@ -42,11 +42,11 @@ train_options_var:
 
   # any occurence of 'auto' will be replaced by network options
   --model-prefix:
-    - 'models/pre_train_global_fc_2/model'
-    - 'models/auto/model'
-    - 'models/auto/model'
-    - 'models/auto/model'
-    - 'models/auto/model'
+    - models/test_pnet_update_17_04/freeze_pnet/model    
+    - models/test_pnet_update_17_04/medium_particles/model 
+    - models/test_pnet_update_17_04/medium_globals/model   
+    - models/test_pnet_update_17_04/large_particles/model  
+    - models/test_pnet_update_17_04/large_globals/model    
 
   --data-config:
     - 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml'
@@ -56,7 +56,7 @@ train_options_var:
     - 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml'
 
   --start-lr:
-    - 1e-5
+    - 1e-4
     - 1e-4
     - 1e-4
     - 1e-4
@@ -77,11 +77,11 @@ train_options_var:
     - 100
 
   --tensorboard:
-    - runs/test_pre_train/pre_train_global_fc_2
-    - runs/test_pre_train/auto
-    - runs/test_pre_train/auto
-    - runs/test_pre_train/auto
-    - runs/test_pre_train/auto
+    - runs/test_pnet_update_17_04/freeze_pnet
+    - runs/test_pnet_update_17_04/medium_particles
+    - runs/test_pnet_update_17_04/medium_globals
+    - runs/test_pnet_update_17_04/large_particles
+    - runs/test_pnet_update_17_04/large_globals
 
 network_options:
 

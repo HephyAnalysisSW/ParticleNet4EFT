@@ -1,34 +1,31 @@
 import torch
-from utils.nn.model.ParticleNetGlobal import ParticleNetTagger
+from torch import nn
+from utils.nn.model.ParticleNetTopDecay import FullyConnectedBlock
 from torch import Tensor
-import math
+
+# just to give the model the "num_classes" attribute which is needed by weaver methods
+class FCBlock_StandAlone(FullyConnectedBlock):
+    def __init__(self,
+                 in_chn: int,
+                 layer_params: list[tuple[int, float]] = None,
+                 out_chn: tuple[int, float] | int = None,
+                 input_transform: nn.Module = None) -> None:
+        super().__init__(in_chn, layer_params, out_chn, input_transform)
+        self.num_classes = out_chn
+
 
 def get_model(data_config, **kwargs):
-    conv_params = [
-        (4, (16, 16, 16)),
-        (4, (32, 32, 32)),
-        ]
-    fc_params = [(64, 0.1)]
-    fc_global_params = [(200, 0.1), (200, 0.1)]
-    fc_combined_params = [(64, 0.1)]
-    use_fusion = True
 
-    eflow_features_dims    = len(data_config.input_dicts['eflow_features'])
     global_features_dims = len(data_config.input_dicts['global_features'])
-    # training linear and quadratic together:
-    num_classes = 2 #len(data_config.label_value)
-    model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
-                              conv_params=kwargs.get("conv_params", conv_params),
-                              fc_params=kwargs.get("fc_params", fc_params),
-                              fc_global_params=kwargs.get("fc_global_params", fc_global_params),
-                              fc_combined_params=kwargs.get("joined_fc_params", fc_combined_params),
-                              use_fusion=kwargs.get("use_fusion", use_fusion),
-                              use_fts_bn=kwargs.get('use_fts_bn', True),
-                              use_counts=kwargs.get('use_counts', True),
-                              constituents_input_dropout=kwargs.get('constituents_input_dropout', None),
-                            #   global_input_dropout=kwargs.get('global_input_dropout', None),
-                              for_inference=kwargs.get('for_inference', False)
-                              )
+    layer_params = [(50,0.0)]
+    num_classes = 2 
+
+    model = FCBlock_StandAlone(
+        in_chn = global_features_dims,
+        layer_params = kwargs.get("globals_fc_params", layer_params),
+        out_chn = num_classes,
+        input_transform = nn.Flatten(start_dim=-2)
+    )
 
     model_info = {
         'input_names':list(data_config.input_names),

@@ -1,0 +1,9 @@
+test_old:
+    prefix:         /users/oskar.rothbacher/CMS/ParticleNet4EFT/models/test_old_global/old/model
+    network-config: TopDecay/networks/ParticleNet/conv_4_16_32_fc_01_64.py
+    epochs: [0,1,2,5,10,20,50,99]
+
+ctGIm-def:
+    prefix:         /users/oskar.rothbacher/CMS/ParticleNet4EFT/models/test_old_global/global/model
+    network-config: TopDecay/networks/ParticleNet/test_pnet_global.py
+    epochs: [0,1,2,5,10,20,50,99]
