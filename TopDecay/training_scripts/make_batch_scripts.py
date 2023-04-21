@@ -36,6 +36,11 @@ parser.add_argument(
     action="store_true",
 )
 
+parser.add_argument(
+    "--submit-consecutive",
+    action="store_true",
+)
+
 
 args = parser.parse_args()
 
@@ -84,9 +89,13 @@ for i in range(n_train_scripts):
             
 
 # get model names from model prefix
-model_names = []
-for model_prefix in config["train_options_var"]["--model-prefix"]:
-    model_names.append(model_prefix.split("/")[-2])
+if "script_name" not in config:
+    script_names = []
+    for model_prefix in config["train_options_var"]["--model-prefix"]:
+        script_names.append(model_prefix.split("/")[-2])
+else:
+    assert len(script_names:=config["script_name"]) == n_train_scripts, "Number of script names must match number of train options."
+
 
 # make out dir
 pathlib.Path.mkdir(args.out_path, parents=True, exist_ok=True)
@@ -110,7 +119,7 @@ for i in range(n_train_scripts):
     len_line_cont = len(f" \\{os.linesep}")
     train_py = train_py[:-len_line_cont]
 
-    script_file = args.out_path / f"{model_names[i]}.{args.type}"
+    script_file = args.out_path / f"{script_names[i]}.{args.type}"
     with open(script_file, "w") as file:
         file.write(sbatch_commands)
         file.write(train_py)
@@ -124,3 +133,37 @@ if args.submit:
     os.system(
         f"for script in {args.out_path}/*.sbatch; do echo $script; sbatch $script; done"
     )
+
+# will submit scripts with the 'afterok' slurm dependency, so they only start after the previous finished succesfully
+if args.submit_consecutive:
+    sub_string = """
+first_iter=0"""
+
+    sub_string += f"""
+
+for script in {args.out_path}/*.sbatch; do"""
+
+    sub_string += """
+
+if [ $first_iter -eq 0 ]
+
+then
+
+(( first_iter++ ))
+job_id=$(sbatch $script)
+echo $job_id
+echo using $script
+job_id=${job_id#Submitted batch job }
+
+else
+
+job_id=$(sbatch -d afterok:$job_id $script)
+echo $job_id
+echo using $script
+job_id=${job_id#Submitted batch job }
+
+fi
+
+done"""
+    # print(sub_string)
+    os.system(sub_string)
