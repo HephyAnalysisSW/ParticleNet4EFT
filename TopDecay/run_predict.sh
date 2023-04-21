@@ -49,31 +49,31 @@ pwd
 for epoch in 0 1 5 10 20 40 50 60 99 200 399
 do
 
-python train.py \
---predict \
---data-test /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[8-9]?.root \
---network-config TopDecay/networks/ParticleNet/test_pnet.py \
---data-config TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml \
---model-prefix models/test_pnet_update_17_04/freeze_pnet/model_epoch-${epoch}_state.pt \
---predict-output prediction_at_epoch_${epoch} \
---weighting  \
---fetch-step 20 \
---num-workers 3 \
---fetch-by-files  \
---regression-mode \
---gpus 0 \
---network-option conv_params '[(4, (8,8,8)), (8, (16, 16, 16))]' \
---network-option pnet_fc_params '[(32, 0.1)]' \
---network-option freeze_pnet 'True' \
---network-option globals_fc_params '[(300, 0.1), (200, 0.1), (100, 0.1)]' \
---network-option joined_fc_params '[(50, 0.1)]'
+# python train.py \
+# --predict \
+# --data-test /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[8-9]?.root \
+# --network-config TopDecay/networks/ParticleNet/test_pnet.py \
+# --data-config TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml \
+# --model-prefix models/test_pnet_update_17_04/freeze_pnet/model_epoch-${epoch}_state.pt \
+# --predict-output prediction_at_epoch_${epoch} \
+# --weighting  \
+# --fetch-step 20 \
+# --num-workers 3 \
+# --fetch-by-files  \
+# --regression-mode \
+# --gpus 0 \
+# --network-option conv_params '[(4, (8,8,8)), (8, (16, 16, 16))]' \
+# --network-option pnet_fc_params '[(32, 0.1)]' \
+# --network-option freeze_pnet 'True' \
+# --network-option globals_fc_params '[(300, 0.1), (200, 0.1), (100, 0.1)]' \
+# --network-option joined_fc_params '[(50, 0.1)]'
 
 python train.py \
 --predict \
 --data-test /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[8-9]?.root \
 --network-config TopDecay/networks/ParticleNet/test_pnet.py \
---data-config TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml \
---model-prefix models/test_pnet_update_17_04/large_globals/model_epoch-${epoch}_state.pt \
+--data-config TopDecay/data/eflow_particles_only_ctWRe_weighted.yaml \
+--model-prefix models/test_pnet_update_17_04/large_particles/model_epoch-${epoch}_state.pt \
 --predict-output prediction_at_epoch_${epoch} \
 --weighting  \
 --fetch-step 20 \
@@ -84,16 +84,16 @@ python train.py \
 --network-option conv_params '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]' \
 --network-option pnet_fc_params '[(256, 0.1), (256, 0.1)]' \
 --network-option freeze_pnet 'False' \
---network-option globals_fc_params '[(200, 0.1), (200, 0.1)]' \
---network-option joined_fc_params '[(256, 0.1), (256, 0.1)]'
+--network-option globals_fc_params '[]' \
+--network-option joined_fc_params '[(128, 0.1), (128, 0.1)]'
 
 
 python train.py \
 --predict \
 --data-test /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v6/tschRefPointNoWidthRW/tschRefPointNoWidthRW_[8-9]?.root \
 --network-config TopDecay/networks/ParticleNet/test_pnet.py \
---data-config TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml \
---model-prefix models/test_pnet_update_17_04/medium_globals/model_epoch-${epoch}_state.pt \
+--data-config TopDecay/data/eflow_particles_only_ctWRe_weighted.yaml \
+--model-prefix models/test_pnet_update_17_04/medium_particles/model_epoch-${epoch}_state.pt \
 --predict-output prediction_at_epoch_${epoch} \
 --weighting  \
 --fetch-step 20 \
@@ -104,8 +104,8 @@ python train.py \
 --network-option conv_params '[(8, (32, 32, 32)), (8, (64, 64, 64)), (8, (128, 128, 128))]' \
 --network-option pnet_fc_params '[(128, 0.1), (128, 0.1)]' \
 --network-option freeze_pnet 'False' \
---network-option globals_fc_params '[(200, 0.1), (200, 0.1)]' \
---network-option joined_fc_params '[(128, 0.1), (128, 0.1)]'
+--network-option globals_fc_params '[]' \
+--network-option joined_fc_params '[(64, 0.1), (64, 0.1)]'
 
 done
 

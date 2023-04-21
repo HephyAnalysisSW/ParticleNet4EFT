@@ -71,7 +71,7 @@ args = parser.parse_args()
 
 def main(args):
 
-    args.output = DEFAULT_PLOT_DIRECTORY #/ args.model_name
+    args.output = DEFAULT_PLOT_DIRECTORY / args.output
     args.model_name = DEFAULT_MODEL_PATH / args.model_name
 
     # check if the model path exists
@@ -222,8 +222,8 @@ def main(args):
         bins=100,
         log=True,
     )
-
-    fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}_LLR.png")
+    pathlib.Path.mkdir(args.output / f"{str(args.model_name).split('/')[-1]}", parents=True, exist_ok=True)
+    fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}" / f"epoch_{args.epoch}_LLR.png")
 
     print(args.output)
     # all the plots go inside this context manager
