@@ -14,7 +14,7 @@ def knn(x, k):
 
 
 # v1 is faster on GPU
-def get_graph_feature_v1(x, k, idx):
+def get_graph_feature_v1(x, k, idx, loc = True):
     batch_size, num_dims, num_points = x.size()
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
     idx = idx + idx_base
@@ -28,7 +28,7 @@ def get_graph_feature_v1(x, k, idx):
     #print ("             x", (x)[0][:10] )
     #print ("    subtracted", (fts-x)[0][:10] )
     #fts = torch.cat((x, fts ), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
-    fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
+    fts = torch.cat((x, fts - x if loc else fts), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
 
     return fts
 
@@ -46,7 +46,7 @@ def get_graph_feature_v2(x, k, idx):
 
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
 
-    fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
+    fts = torch.cat((x, fts - x if loc else fts), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
 
     return fts
 
@@ -68,9 +68,10 @@ class EdgeConvBlock(nn.Module):
         Whether to include batch normalization on messages.
     """
 
-    def __init__(self, k, in_feat, out_feats, batch_norm=True, activation=True, cpu_mode=False):
+    def __init__(self, k, in_feat, out_feats, batch_norm=True, activation=True, cpu_mode=False, loc=True):
         super(EdgeConvBlock, self).__init__()
         self.k = k
+        self.loc=loc
         self.batch_norm = batch_norm
         self.activation = activation
         self.num_layers = len(out_feats)
@@ -109,7 +110,7 @@ class EdgeConvBlock(nn.Module):
 
         topk_indices = knn(points, self.k)
 
-        x = self.get_graph_feature(features, self.k, topk_indices)
+        x = self.get_graph_feature(features, self.k, topk_indices, self.loc)
 
         for conv, bn, act in zip(self.convs, self.bns, self.acts):
             x = conv(x)  # (N, C', P, K)
@@ -140,6 +141,7 @@ class ParticleNet(nn.Module):
                  num_classes,
                  conv_params,
                  fc_params,
+                 loc=True,
                  fc_global_params=None,
                  fc_combined_params=None,
                  use_fusion=False,
@@ -151,7 +153,7 @@ class ParticleNet(nn.Module):
                  **kwargs):
         super(ParticleNet, self).__init__(**kwargs)
 
-        fcs = []
+        fcs = nn.ModuleList()
         self.edge_convs = None
         if len(conv_params)>0:
             self.edge_convs = nn.ModuleList()
@@ -164,7 +166,7 @@ class ParticleNet(nn.Module):
             for idx, layer_param in enumerate(conv_params):
                 k, channels = layer_param
                 in_feat = input_dims if idx == 0 else conv_params[idx - 1][1][-1]
-                self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, batch_norm=batch_norm, cpu_mode=for_inference,activation=edge_conv_activation))
+                self.edge_convs.append(EdgeConvBlock(k=k, in_feat=in_feat, out_feats=channels, batch_norm=batch_norm, cpu_mode=for_inference,activation=edge_conv_activation, loc=loc))
 
             self.use_fusion = use_fusion
             if self.use_fusion: 
@@ -188,8 +190,8 @@ class ParticleNet(nn.Module):
             # this allows to train a pure NN
             fc_out_chn = 0 
 
-        fcs_global = []
-        fcs_combined = []
+        fcs_global = nn.ModuleList()
+        fcs_combined = nn.ModuleList()
 
         fc_global_out_chn = global_dims
         self.global_dims  = global_dims
@@ -343,6 +345,7 @@ class ParticleNetTagger(nn.Module):
                  fc_global_params=None,
                  fc_combined_params=None,
                  use_fusion=True,
+                 loc=True,
                  feature_conv=True,
                  batch_norm=True,
                  global_batch_norm=True,
@@ -358,11 +361,12 @@ class ParticleNetTagger(nn.Module):
         self.num_classes = num_classes
         self.constituents_input_dropout = nn.Dropout(constituents_input_dropout) if constituents_input_dropout else None
         self.constituents_conv = FeatureConv(constituents_features_dims, conv_dim, batch_norm=batch_norm, activation=feature_conv_activation) if (len(conv_params)>0 and feature_conv) else None
-        self.global_batch_norm = nn.BatchNorm1d(global_features_dims) if global_batch_norm else None
+        self.global_batch_norm = nn.BatchNorm1d(global_features_dims) if (global_features_dims>0 and global_batch_norm) else None
         self.pn = ParticleNet(input_dims=conv_dim ,
                               global_dims=global_features_dims,
                               num_classes=num_classes,
                               conv_params=conv_params,
+                              loc=loc,
                               fc_params=fc_params,
                               fc_global_params=fc_global_params,
                               fc_combined_params=fc_combined_params,

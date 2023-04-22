@@ -5,20 +5,24 @@ import math
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (16, 16, 16)),
-        (16, (16, 16, 16)),
-        (16, (16, 16, 16)),
-        #(16, (256, 256, 256)),
+        (16, (64, 64, 64)),
+        (16, (128, 128, 128)),
+        (16, (256, 256, 256)),
         ]
-    fc_params = [(256, 0.01)]
-    fc_global_params = [(256,0.01)] 
-    fc_combined_params = [(256,0.01), (256, 0.1)]#, (256, 0.1)] 
+    fc_params = [(256, 0.1)]
     use_fusion = True
-    batch_norm = False #EdgeConv and feature conv batch norm
-    global_batch_norm = False #EdgeConv and feature conv batch norm
-    conv_dim = 12 # dimension of feature convolution layer (default:32)
+
+
+    fc_global_params = []#[(256,0.01)] 
+    fc_combined_params = []#[(256,0.01), (256, 0.1)]#, (256, 0.1)] 
+    batch_norm = True #EdgeConv and feature conv batch norm
+    global_batch_norm = True #batch norm of global features
+    feature_conv = True # feature convolution
+    feature_conv_activation = True
+    conv_dim = 5 # dimension of feature convolution layer (default:32)
     eflow_features_dims  = len(data_config.input_dicts['eflow_features'])
-    global_features_dims = len(data_config.input_dicts['global_features'])
+    global_features_dims = 0#len(data_config.input_dicts['global_features'])
+    edge_conv_activation = True
     # training linear and quadratic together:
     num_classes = 1 #len(data_config.label_value)
     model = ParticleNetTagger(eflow_features_dims, global_features_dims, num_classes,
@@ -27,8 +31,11 @@ def get_model(data_config, **kwargs):
                               use_fusion=use_fusion,
                               batch_norm=batch_norm,
                               global_batch_norm=global_batch_norm,
+                              feature_conv = feature_conv,
+                              feature_conv_activation = feature_conv_activation,
                               conv_dim=conv_dim,
                               use_fts_bn=kwargs.get('use_fts_bn', False),
+                              edge_conv_activation = edge_conv_activation,
                               use_counts=kwargs.get('use_counts', True),
                               constituents_input_dropout=kwargs.get('constituents_input_dropout', None),
                               for_inference=kwargs.get('for_inference', False)
