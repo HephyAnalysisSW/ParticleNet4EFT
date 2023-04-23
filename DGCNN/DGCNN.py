@@ -11,7 +11,7 @@ import glob
 from torch.nn import Linear
 
 import torch_geometric.transforms as T
-from torch_geometric.nn import MLP, global_max_pool
+from torch_geometric.nn import MLP
 from torch.nn import Sequential as Seq, Linear, ReLU
 from torch_geometric.nn import MessagePassing
 
