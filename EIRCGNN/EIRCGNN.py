@@ -141,7 +141,7 @@ norm_kwargs={}#'track_running_stats':False}
 num_classes = 1
 
 class Net(torch.nn.Module):
-    def __init__(self, num_classes=num_classes, conv_params=conv_params, dRN=0.4, readout_params=readout_params):
+    def __init__(self, num_classes=num_classes, conv_params=conv_params, dRN=0.4, readout_params=readout_params, learn_from_phi=False):
         super().__init__()
 
         self.EC = torch.nn.ModuleList()
@@ -156,7 +156,10 @@ class Net(torch.nn.Module):
 
         # output features + sin/cos gamma
         EC_out_chn = hidden_layers[-1]
-
+        # whether we're going to feed sin/cos gamma
+        self.learn_from_phi = learn_from_phi
+        if self.learn_from_phi:
+            EC_out_chn += 2
         self.mlp = MLP( [EC_out_chn]+readout_params[1]+[num_classes], dropout=readout_params[0], act="LeakyRelu",norm_kwargs=norm_kwargs)
         self.out = torch.nn.Sigmoid()
 
@@ -183,11 +186,13 @@ class Net(torch.nn.Module):
         #print ("x",x.shape)
         # disregard first column (pt, keep the last two ones: sin/cos gamma)
         x = torch.zeros((len(batch.unique()),x[:,1:].shape[1]),dtype=torch.float).to(device).index_add_(0, batch, wj.view(-1,1)*x[:,1:])
-        
-        return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
+        if self.learn_from_phi == True: 
+            return torch.cat( (self.out(self.mlp( x )), x[:, -2:]), dim=1)
+        else:
+            return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model  = Net().to(device)
+model  = Net(learn_from_phi=False).to(device)
 
 ################ Micro MC Toy Data #####################
 import MicroMC
@@ -312,7 +317,7 @@ if not args.overwrite:
 
 ####################  Training loop ##########################
 signal     = MicroMC.make_model( R=1, phi=0, var=0.3 )
-background = MicroMC.make_model( R=0, phi=0, var=0.3 )
+background = MicroMC.make_model( R=1, phi=math.pi/4, var=0.3 )
 
 def getEvents( nTraining=args.nTraining ):
 
