@@ -13,7 +13,8 @@ from torch_geometric.nn import MessagePassing, MLP
 
 import sys
 sys.path.insert(0, '../..')
-import tools.user as user
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class EdgeConv(MessagePassing):
     def __init__(self, mlp):
@@ -118,7 +119,7 @@ class EIRCGNN(EdgeConv):
 norm_kwargs={}#'track_running_stats':False}
 
 class SMEFTNet(torch.nn.Module):
-    def __init__(self, num_classes=1, conv_params=( (0.0, [20, 20]), ), dRN=0.4, readout_params=(0.0, [32,32]), learn_from_phi=False):
+    def __init__(self, num_classes=1, conv_params=( (0.0, [10, 10]), (0.0, [10, 10]) ), dRN=0.4, readout_params=(0.0, [32, 32]), learn_from_phi=False):
         super().__init__()
 
         self.EC = torch.nn.ModuleList()
@@ -259,6 +260,7 @@ if __name__=="__main__":
         #    print ("i",i,"classifier", classifier.item(), "angle", torch.atan2(angles[:,1], angles[:,0]).item()/(math.pi) )
     
     ########################## directories ###########################
+    import tools.user as user
     model_directory = os.path.dirname( os.path.join( user.model_directory, 'EIRCGNN', args.prefix ))
     os.makedirs( model_directory , exist_ok=True)
 
@@ -295,9 +297,9 @@ if __name__=="__main__":
         label_sig = torch.ones(  len(pt_sig) )
         label_bkg = torch.zeros( len(pt_bkg) )
         return train_test_split( 
-            torch.Tensor(np.concatenate( (pt_sig, pt_bkg) )), 
-            torch.Tensor(np.concatenate( (angles_sig, angles_bkg) )), 
-            torch.Tensor(np.concatenate( (label_sig, label_bkg) ))
+            torch.Tensor(np.concatenate( (pt_sig, pt_bkg) )).to(device), 
+            torch.Tensor(np.concatenate( (angles_sig, angles_bkg) )).to(device), 
+            torch.Tensor(np.concatenate( (label_sig, label_bkg) )).to(device)
         )
     
     model  = SMEFTNet(learn_from_phi=args.learn_from_phi).to(device)

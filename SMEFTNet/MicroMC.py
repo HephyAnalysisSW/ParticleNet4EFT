@@ -16,7 +16,6 @@ def make_model( R = 1, phi = 0, var = 0.3, two_prong = True):
                     torch.Tensor((var,var)) )
         return comp 
 
-
 mean_Nparticles = 50
 Nparticles      = D.Poisson(mean_Nparticles)
 Nparticle_pad   = 80
