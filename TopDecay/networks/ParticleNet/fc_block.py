@@ -4,14 +4,14 @@ from utils.nn.model.ParticleNetTopDecay import FullyConnectedBlock
 from torch import Tensor
 
 # just to give the model the "num_classes" attribute which is needed by weaver methods
-class FCBlock_StandAlone(FullyConnectedBlock):
-    def __init__(self,
-                 in_chn: int,
-                 layer_params: list[tuple[int, float]] = None,
-                 out_chn: tuple[int, float] | int = None,
-                 input_transform: nn.Module = None) -> None:
-        super().__init__(in_chn, layer_params, out_chn, input_transform)
-        self.num_classes = out_chn
+# class FCBlock_StandAlone(FullyConnectedBlock):
+#     def __init__(self,
+#                  in_chn: int,
+#                  layer_params: list[tuple[int, float]] = None,
+#                  out_chn: tuple[int, float] | int = None,
+#                  input_transform: nn.Module = None) -> None:
+#         super().__init__(in_chn, layer_params, out_chn, input_transform)
+#         self.num_classes = out_chn
 
 
 def get_model(data_config, **kwargs):
@@ -20,10 +20,12 @@ def get_model(data_config, **kwargs):
     layer_params = [(50,0.0)]
     num_classes = 2 
 
-    model = FCBlock_StandAlone(
+    model = FullyConnectedBlock(
         in_chn = global_features_dims,
         layer_params = kwargs.get("globals_fc_params", layer_params),
         out_chn = num_classes,
+        use_bn=False,
+        is_output_layer=True,
         input_transform = nn.Flatten(start_dim=-2)
     )
 

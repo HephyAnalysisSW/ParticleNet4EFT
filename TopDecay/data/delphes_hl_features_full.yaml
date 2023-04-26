@@ -16,7 +16,7 @@ preprocess:
   data_fraction: 
 
 inputs:
-   hl_features:
+   global_features:
       length: 1
       vars: 
          - delphesJet_pt
