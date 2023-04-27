@@ -1,133 +1,119 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+import ROOT
 import os
 import math
 import numpy as np
 import torch
 import pickle
-import glob
+import array
 
 import sys
 sys.path.insert(0, '../..')
 import tools.user as user
+import tools.syncer as syncer
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--overwrite', action='store_true', default=False, help="restart training?")
-parser.add_argument('--prefix',    action='store', default='v1', help="Prefix for training?")
-parser.add_argument('--learning_rate', '--lr',    action='store', default=0.001, help="Learning rate")
-parser.add_argument('--learn_from_phi', action='store_true',  help="SMEFTNet parameter")
-parser.add_argument('--epochs', action='store', default=100, type=int, help="Number of epochs.")
-parser.add_argument('--nTraining', action='store', default=1000, type=int, help="Number of epochs.")
-parser.add_argument('--conv_params',  action='store', default="( (0.0, [20, 20]), )", help="Conv params")
-parser.add_argument('--readout_params',  action='store', default="(0.0, [32, 32])", help="Conv params")
-parser.add_argument('--dRN',  action='store', type=float, default=0.4)
+parser.add_argument('--plot_directory',    action='store', default='v1', help="Prefix for training?")
+parser.add_argument('--nTest', action='store', default=1000, type=int, help="Number of epochs.")
 
 args = parser.parse_args()
 
-if args.learn_from_phi:
-    args.prefix+="_LFP"
-
-cfg_dict = {'best_loss_test':float('inf')}
-cfg_dict.update( {key:getattr(args, key) for key in ['prefix', 'learning_rate', 'learn_from_phi', 'epochs', 'nTraining', 'conv_params', 'readout_params', 'dRN']} )
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# reproducibility
-torch.manual_seed(0)
-import numpy as np
-np.random.seed(0)
-
+###################### Load Model ################################
 from SMEFTNet import SMEFTNet
-model = SMEFTNet(
-    dRN=args.dRN,
-    conv_params=eval(args.conv_params),
-    readout_params=eval(args.readout_params),
-    learn_from_phi=args.learn_from_phi,
-    ).to(device)
 
-###################### Micro MC Toy Data #########################
+models = [
+    #{'dir':'def_conv_10_10__10_10_LFP', 'legendText':'10/10,10/10', 'color':ROOT.kBlue},
+    #{'dir':'def_conv_10_10__20_20_LFP', 'legendText':'10/10,20/20', 'color':ROOT.kGreen},
+    #{'dir':'def_conv_10_10__30_30_LFP', 'legendText':'10/10,30/30', 'color':ROOT.kRed},
+    #{'dir':'def_conv_10_10__40_40_LFP', 'legendText':'10/10,40/40', 'color':ROOT.kOrange},
+    #{'dir':'def_conv_10_10__50_50_LFP', 'legendText':'10/10,50/50', 'color':ROOT.kMagenta},
+
+    {'dir':'def_conv_10_10_LFP', 'legendText':'10/10', 'color':ROOT.kBlue},
+    {'dir':'def_conv_20_20_LFP', 'legendText':'20/20', 'color':ROOT.kGreen},
+    {'dir':'def_conv_30_30_LFP', 'legendText':'30/30', 'color':ROOT.kRed},
+    {'dir':'def_conv_40_40_LFP', 'legendText':'40/40', 'color':ROOT.kOrange},
+    {'dir':'def_conv_50_50_LFP', 'legendText':'50/50', 'color':ROOT.kMagenta},
+
+    #{'dir':'def_ro_10_10_LFP', 'legendText':'RO 10/10', 'color':ROOT.kBlue},
+    #{'dir':'def_ro_20_20_LFP', 'legendText':'RO 20/20', 'color':ROOT.kGreen},
+    #{'dir':'def_ro_30_30_LFP', 'legendText':'RO 30/30', 'color':ROOT.kRed},
+    #{'dir':'def_ro_40_40_LFP', 'legendText':'RO 40/40', 'color':ROOT.kOrange},
+    #{'dir':'def_ro_50_50_LFP', 'legendText':'RO 50/50', 'color':ROOT.kMagenta},
+
+    #{'dir':'noPhi_conv_10_10__10_10', 'legendText':'10/10,10/10', 'color':ROOT.kBlue},
+    #{'dir':'noPhi_conv_10_10__20_20', 'legendText':'10/10,20/20', 'color':ROOT.kGreen},
+    #{'dir':'noPhi_conv_10_10__30_30', 'legendText':'10/10,30/30', 'color':ROOT.kRed},
+    #{'dir':'noPhi_conv_10_10__40_40', 'legendText':'10/10,40/40', 'color':ROOT.kOrange},
+    #{'dir':'noPhi_conv_10_10__50_50', 'legendText':'10/10,50/50', 'color':ROOT.kMagenta},
+
+    #{'dir':'noPhi_conv_10_10', 'legendText':'10/10', 'color':ROOT.kBlue},
+    #{'dir':'noPhi_conv_20_20', 'legendText':'20/20', 'color':ROOT.kGreen},
+    #{'dir':'noPhi_conv_30_30', 'legendText':'30/30', 'color':ROOT.kRed},
+    #{'dir':'noPhi_conv_40_40', 'legendText':'40/40', 'color':ROOT.kOrange},
+    #{'dir':'noPhi_conv_50_50', 'legendText':'50/50', 'color':ROOT.kMagenta},
+
+    #{'dir':'noPhi_ro_10_10', 'legendText':'RO 10/10', 'color':ROOT.kBlue},
+    #{'dir':'noPhi_ro_20_20', 'legendText':'RO 20/20', 'color':ROOT.kGreen},
+    #{'dir':'noPhi_ro_30_30', 'legendText':'RO 30/30', 'color':ROOT.kRed},
+    #{'dir':'noPhi_ro_40_40', 'legendText':'RO 40/40', 'color':ROOT.kOrange},
+    #{'dir':'noPhi_ro_50_50', 'legendText':'RO 50/50', 'color':ROOT.kMagenta},
+]
+#def_conv_10_10_LFP         
+#def_conv_20_20_LFP         
+#def_conv_30_30_LFP         
+#def_conv_40_40_LFP
+#def_conv_50_50_LFP
+#def_ro_10_10_LFP
+#def_ro_20_20_LFP
+#def_ro_30_30_LFP
+#def_ro_40_40_LFP
+#def_ro_50_50_LFP
+for model in models:
+    model['model'] = SMEFTNet.load( os.path.join( user.model_directory, 'SMEFTNet', model['dir'] )).to(device)
+
+torch.autograd.set_grad_enabled(False)
+
+####################  Eval data ##########################
 import MicroMC
 from sklearn.model_selection import train_test_split
-
-########################## directories ###########################
-model_directory = os.path.join( user.model_directory, 'SMEFTNet', args.prefix )
-os.makedirs( model_directory, exist_ok=True)
-print ("Using model directory", model_directory)
-
-################### model, scheduler, loss #######################
-model.train()
-optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=1./20)
-criterion = torch.nn.BCELoss()
-
-
-################ Loading previous state ###########################
-epoch_min = 0
-if not args.overwrite:
-    files = glob.glob( os.path.join( model_directory, 'epoch-*_state.pt') )
-    if len(files)>0:
-        load_file_name = max( files, key = lambda f: int(f.split('-')[-1].split('_')[0]))
-        load_epoch = int(load_file_name.split('-')[-1].split('_')[0])
-    else:
-        load_epoch = None
-    if load_epoch is not None:
-        print('Resume training from %s' % load_file_name)
-        model_state = torch.load(load_file_name, map_location=device)
-        model.load_state_dict(model_state)
-        opt_state_file = load_file_name.replace('_state.pt', '_optimizer.pt') 
-        if os.path.exists(opt_state_file):
-            opt_state = torch.load(opt_state_file, map_location=device)
-            optimizer.load_state_dict(opt_state)
-        else:
-            print('Optimizer state file %s NOT found!' % opt_state_file)
-        epoch_min=load_epoch+1
-        cfg_dict = pickle.load( open( load_file_name.replace('_state.pt', '_cfg_dict.pkl'), 'rb') )
-
-####################  Training loop ##########################
 signal     = MicroMC.make_model( R=1, phi=0, var=0.3 )
 background = MicroMC.make_model( R=1, phi=math.pi/2, var=0.3 )
 
-def getEvents( nTraining=args.nTraining ):
+pt_sig, angles_sig = MicroMC.sample(signal, args.nTest)
+pt_bkg, angles_bkg = MicroMC.sample(background, args.nTest)
+pt_sig      = torch.Tensor(pt_sig     ).to(device) 
+angles_sig  = torch.Tensor(angles_sig ).to(device)
+pt_bkg      = torch.Tensor(pt_bkg     ).to(device)
+angles_bkg  = torch.Tensor(angles_bkg ).to(device)
 
-    pt_sig, angles_sig = MicroMC.sample(signal, nTraining)
-    pt_bkg, angles_bkg = MicroMC.sample(background, nTraining)
+########################## directories ###########################
+plot_directory = os.path.join( user.plot_directory, 'SMEFTNet', 'roc', args.plot_directory )
+os.makedirs( plot_directory, exist_ok=True)
+print ("Using plot directory", plot_directory)
+c1 = ROOT.TCanvas()
+l  = ROOT.TLegend()
+for i_model, model in enumerate(models): 
+    out_sig  = model['model'](pt=pt_sig, angles=angles_sig)
+    out_bkg  = model['model'](pt=pt_bkg, angles=angles_bkg)
+    
+    out_data = np.concatenate( (np.column_stack( (out_sig[:,0].numpy(), np.ones_like(out_sig[:,0]), np.zeros_like(out_sig[:,0]))), np.column_stack( (out_bkg[:,0].numpy(), np.zeros_like(out_bkg[:,0]), np.ones_like(out_bkg[:,0])))) )
+    out_data = out_data[np.argsort(-out_data[:,0])]
+    out_data = np.cumsum(out_data[:,1:],axis=0)
+    out_data = np.array([((n_s/len(out_sig), n_b/len(out_bkg))) for n_s, n_b in out_data])
 
-    label_sig = torch.ones(  len(pt_sig) )
-    label_bkg = torch.zeros( len(pt_bkg) )
-    return train_test_split( 
-        torch.Tensor(np.concatenate( (pt_sig, pt_bkg) )).to(device), 
-        torch.Tensor(np.concatenate( (angles_sig, angles_bkg) )).to(device), 
-        torch.Tensor(np.concatenate( (label_sig, label_bkg) )).to(device)
-    )
+    model['roc'] = ROOT.TGraph(len(out_data), array.array('d', out_data[:,0]), array.array('d', out_data[:,1])) 
+    if i_model==0:
+        model['roc'].Draw('AL')
+    else:
+        model['roc'].Draw('L')
+    model['roc'].SetLineColor( model['color'] )
+    l.AddEntry( model['roc'], model['legendText'] )
 
-pt_train, pt_test, angles_train, angles_test, labels_train, labels_test = getEvents(args.nTraining)
-for epoch in range(epoch_min, args.epochs):
-
-    optimizer.zero_grad()
-
-    out  = model(pt=pt_train, angles=angles_train)
-    loss = criterion(out[:,0], labels_train )
-    n_samples = len(pt_train) 
-
-    loss.backward()
-    optimizer.step()
-
-    with torch.no_grad():
-        out_test  = model(pt=pt_test, angles=angles_test)
-        loss_test = criterion(out_test[:,0], labels_test )
-
-    print(f'Epoch {epoch:03d} with N={n_samples:03d}, Loss(train): {loss:.4f} Loss(test): {loss_test:.4f}')
-
-    cfg_dict['epoch']=epoch
-    if args.prefix:
-        if loss_test.item()<cfg_dict['best_loss_test']:
-            cfg_dict['best_loss_test'] = loss_test.item()
-            torch.save(  model.state_dict(),     os.path.join( model_directory, 'best_state.pt'))
-            torch.save(  optimizer.state_dict(), os.path.join( model_directory, 'best_optimizer.pt'))
-            pickle.dump( cfg_dict,          open(os.path.join( model_directory, 'best_cfg_dict.pkl'),'wb'))
-            
-        torch.save(  model.state_dict(),     os.path.join( model_directory, 'epoch-%d_state.pt' % epoch))
-        torch.save(  optimizer.state_dict(), os.path.join( model_directory, 'epoch-%d_optimizer.pt' % epoch))
-        pickle.dump( cfg_dict,          open(os.path.join( model_directory, 'epoch-%d_cfg_dict.pkl' % epoch),'wb'))
+l.Draw()
+c1.Print(os.path.join( plot_directory, "roc.png"))
+syncer.sync()

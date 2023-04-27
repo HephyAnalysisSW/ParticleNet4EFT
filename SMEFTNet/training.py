@@ -29,9 +29,6 @@ args = parser.parse_args()
 if args.learn_from_phi:
     args.prefix+="_LFP"
 
-cfg_dict = {'best_loss_test':float('inf')}
-cfg_dict.update( {key:getattr(args, key) for key in ['prefix', 'learning_rate', 'learn_from_phi', 'epochs', 'nTraining', 'conv_params', 'readout_params', 'dRN']} )
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # reproducibility
@@ -62,8 +59,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=1./20)
 criterion = torch.nn.BCELoss()
 
-
 ################ Loading previous state ###########################
+model.cfg_dict = {'best_loss_test':float('inf')}
+model.cfg_dict.update( {key:getattr(args, key) for key in ['prefix', 'learning_rate', 'learn_from_phi', 'epochs', 'nTraining', 'conv_params', 'readout_params', 'dRN']} )
+
 epoch_min = 0
 if not args.overwrite:
     files = glob.glob( os.path.join( model_directory, 'epoch-*_state.pt') )
@@ -83,7 +82,8 @@ if not args.overwrite:
         else:
             print('Optimizer state file %s NOT found!' % opt_state_file)
         epoch_min=load_epoch+1
-        cfg_dict = pickle.load( open( load_file_name.replace('_state.pt', '_cfg_dict.pkl'), 'rb') )
+        model.cfg_dict = pickle.load( open( load_file_name.replace('_state.pt', '_cfg_dict.pkl'), 'rb') )
+        # FIXME should add warning if keys change
 
 ####################  Training loop ##########################
 signal     = MicroMC.make_model( R=1, phi=0, var=0.3 )
@@ -120,14 +120,15 @@ for epoch in range(epoch_min, args.epochs):
 
     print(f'Epoch {epoch:03d} with N={n_samples:03d}, Loss(train): {loss:.4f} Loss(test): {loss_test:.4f}')
 
-    cfg_dict['epoch']=epoch
+    model.cfg_dict['epoch']       = epoch
+    model.cfg_dict['num_classes'] = 1#model.num_classes
     if args.prefix:
-        if loss_test.item()<cfg_dict['best_loss_test']:
-            cfg_dict['best_loss_test'] = loss_test.item()
+        if loss_test.item()<model.cfg_dict['best_loss_test']:
+            model.cfg_dict['best_loss_test'] = loss_test.item()
             torch.save(  model.state_dict(),     os.path.join( model_directory, 'best_state.pt'))
             torch.save(  optimizer.state_dict(), os.path.join( model_directory, 'best_optimizer.pt'))
-            pickle.dump( cfg_dict,          open(os.path.join( model_directory, 'best_cfg_dict.pkl'),'wb'))
+            pickle.dump( model.cfg_dict,          open(os.path.join( model_directory, 'best_cfg_dict.pkl'),'wb'))
             
         torch.save(  model.state_dict(),     os.path.join( model_directory, 'epoch-%d_state.pt' % epoch))
         torch.save(  optimizer.state_dict(), os.path.join( model_directory, 'epoch-%d_optimizer.pt' % epoch))
-        pickle.dump( cfg_dict,          open(os.path.join( model_directory, 'epoch-%d_cfg_dict.pkl' % epoch),'wb'))
+        pickle.dump( model.cfg_dict,          open(os.path.join( model_directory, 'epoch-%d_cfg_dict.pkl' % epoch),'wb'))

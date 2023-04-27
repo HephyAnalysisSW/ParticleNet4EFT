@@ -132,16 +132,33 @@ class SMEFTNet(torch.nn.Module):
             else:
                 self.EC.append( EIRCGNN(MLP([3*conv_params[l-1][1][-1]+2]+hidden_layers_,dropout=dropout, act="LeakyRelu"), dRN=dRN ) ) 
 
-        # output features + sin/cos gamma
+        # output features + cos/sin gamma
         EC_out_chn = hidden_layers[-1]
-        # whether we're going to feed sin/cos gamma
+        # whether we're going to feed cos/sin gamma
         self.learn_from_phi = learn_from_phi
         if self.learn_from_phi:
             EC_out_chn += 2
+
         self.mlp = MLP( [EC_out_chn]+readout_params[1]+[num_classes], dropout=readout_params[0], act="LeakyRelu",norm_kwargs=norm_kwargs)
+
         self.out = torch.nn.Sigmoid()
 
-    def forward(self, pt, angles, message_logging=False):
+    @classmethod
+    def load(cls, directory, epoch=None):
+        if epoch is None:
+            load_file_name = 'best_state.pt'
+        else:
+            load_file_name = 'epoch-%d_state.pt'%epoch
+        load_file_name = os.path.join( directory, load_file_name)
+        cfg_dict = pickle.load(open(load_file_name.replace('_state.pt', '_cfg_dict.pkl'),'rb'))
+        model = cls( num_classes=1, conv_params=eval(cfg_dict['conv_params']), dRN=cfg_dict['dRN'], readout_params=eval(cfg_dict['readout_params']), learn_from_phi=cfg_dict['learn_from_phi'])
+        model_state = torch.load(load_file_name, map_location=device)
+        model.load_state_dict(model_state)
+        model.cfg_dict = cfg_dict
+        model.eval()
+        return model
+
+    def forward(self, pt, angles, message_logging=False, return_EIRCGNN_output=False):
 
         # for IRC tests we actually low zero pt. Zero abs angles define the mask
         mask = (angles.abs().sum(dim=-1) != 0)
@@ -153,21 +170,29 @@ class SMEFTNet(torch.nn.Module):
             EC.message_logging = message_logging
             x = EC(x, batch)
 
-        # IRC safe pooling
+        # global IRC safe message pooling
         pt = x[:,0] 
-        #return pt, batch 
         wj = pt/( torch.zeros_like(batch.unique(),dtype=torch.float).index_add_(0, batch, pt))[batch]
         if torch.any( torch.isnan(wj)):
             print ("Warning! Found nan in pt weighted readout. Are there no particles with pt>0?. Replace with zero.")
             wj = torch.nan_to_num(wj)
-        #print ("wj",wj.shape)
-        #print ("x",x.shape)
-        # disregard first column (pt, keep the last two ones: sin/cos gamma)
+        # disregard first column (pt, keep the last two ones: cos/sin gamma)
         x = torch.zeros((len(batch.unique()),x[:,1:].shape[1]),dtype=torch.float).to(device).index_add_(0, batch, wj.view(-1,1)*x[:,1:])
-        if self.learn_from_phi == True: 
-            return torch.cat( (self.out(self.mlp( x )), x[:, -2:]), dim=1)
+
+        # Return only the pooled message, for plotting etc. 
+        if return_EIRCGNN_output:
+            if self.learn_from_phi == True:
+                return x 
+        # THIS is the default case -> we pass the pooled message through the output MLP & the 'out' layer
         else:
-            return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
+            if self.learn_from_phi == True: 
+                return torch.cat( (self.out(self.mlp( x )), x[:, -2:]), dim=1)
+            else:
+                return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
+
+    # intercept EIRCGNN output
+    def EIRCGNN_output( self, pt, angles, message_logging=False):
+        return self.forward( pt=pt, angles=angles, message_logging=message_logging, return_EIRCGNN_output=True)
 
 if __name__=="__main__":
 
