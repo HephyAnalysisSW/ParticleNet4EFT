@@ -16,6 +16,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--overwrite', action='store_true', default=False, help="restart training?")
 parser.add_argument('--prefix',    action='store', default='v1', help="Prefix for training?")
+parser.add_argument('--data_model', action='store', default='R1dGamma', help="Prefix for training?")
 parser.add_argument('--learning_rate', '--lr',    action='store', default=0.001, help="Learning rate")
 parser.add_argument('--learn_from_phi', action='store_true',  help="SMEFTNet parameter")
 parser.add_argument('--epochs', action='store', default=100, type=int, help="Number of epochs.")
@@ -46,10 +47,9 @@ model = SMEFTNet(
 
 ###################### Micro MC Toy Data #########################
 import MicroMC
-from sklearn.model_selection import train_test_split
 
 ########################## directories ###########################
-model_directory = os.path.join( user.model_directory, 'SMEFTNet', args.prefix )
+model_directory = os.path.join( user.model_directory, 'SMEFTNet',  args.data_model, args.prefix)
 os.makedirs( model_directory, exist_ok=True)
 print ("Using model directory", model_directory)
 
@@ -86,23 +86,8 @@ if not args.overwrite:
         # FIXME should add warning if keys change
 
 ####################  Training loop ##########################
-signal     = MicroMC.make_model( R=1, phi=0, var=0.3 )
-background = MicroMC.make_model( R=1, phi=math.pi/2, var=0.3 )
 
-def getEvents( nTraining=args.nTraining ):
-
-    pt_sig, angles_sig = MicroMC.sample(signal, nTraining)
-    pt_bkg, angles_bkg = MicroMC.sample(background, nTraining)
-
-    label_sig = torch.ones(  len(pt_sig) )
-    label_bkg = torch.zeros( len(pt_bkg) )
-    return train_test_split( 
-        torch.Tensor(np.concatenate( (pt_sig, pt_bkg) )).to(device), 
-        torch.Tensor(np.concatenate( (angles_sig, angles_bkg) )).to(device), 
-        torch.Tensor(np.concatenate( (label_sig, label_bkg) )).to(device)
-    )
-
-pt_train, pt_test, angles_train, angles_test, labels_train, labels_test = getEvents(args.nTraining)
+pt_train, pt_test, angles_train, angles_test, labels_train, labels_test = MicroMC.getEvents(*MicroMC.getModels(args.data_model), args.nTraining)
 for epoch in range(epoch_min, args.epochs):
 
     optimizer.zero_grad()

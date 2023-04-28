@@ -48,8 +48,8 @@ ROOT.setTDRStyle()
 # Load model
 from SMEFTNet import SMEFTNet
 model_dir  = 'def_conv_10_10_LFP'
-#model_dir  = 'def_ro_50_50_LFP'
-model      = SMEFTNet.load( os.path.join( user.model_directory, 'SMEFTNet', model_dir ))
+data_model = 'R1dGamma'
+model      = SMEFTNet.load( os.path.join( user.model_directory, 'SMEFTNet', data_model, model_dir ))
 torch.autograd.set_grad_enabled(False)
 
 # number of features before the final MLP
@@ -98,10 +98,6 @@ for i in range(0, Nsteps):
     bkg_pdf   .SetLineColor(ROOT.kGray)
     signal_pdf.SetLineWidth(1)
     bkg_pdf   .SetLineWidth(1)
-
-    #for i_level, level in enumerate([.05, .33, .5, .67, .95]):
-    #    bkg_pdf   .SetContourLevel(i_level, level)
-    #    signal_pdf.SetContourLevel(i_level, level)
 
     signal_pdf.Draw("CONT3same")
     bkg_pdf.Draw("CONT3same")
