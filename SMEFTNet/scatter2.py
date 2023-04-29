@@ -18,24 +18,21 @@ np.random.seed(0)
 
 from sklearn.model_selection import train_test_split
 import MicroMC
-signal     = MicroMC.make_model( R=1, phi=0, var=0.3 )
-background = MicroMC.make_model( R=1, phi=math.pi/2, var=0.3 )
 
-signal_pdf = MicroMC.make_TH2(R=1, phi=0, var=0.3)
-bkg_pdf    = MicroMC.make_TH2(R=1, phi=math.pi/2, var=0.3)
+signal_pdf = MicroMC.make_TH2(R=1, phi=0, var=0.3, two_prong=True)
+bkg_pdf    = MicroMC.make_TH2(R=0, phi=0, var=0.3, two_prong=False)
 
-nTest = 1
-pt_sig, angles_sig = MicroMC.sample(signal, nTest)
-pt_bkg, angles_bkg = MicroMC.sample(background, nTest)
-pt_sig      = torch.Tensor(pt_sig     ) 
-angles_sig  = torch.Tensor(angles_sig )
-pt_bkg      = torch.Tensor(pt_bkg     )
-angles_bkg  = torch.Tensor(angles_bkg )
+s1 = MicroMC.make_model( R=0, phi=0, var=0.3, two_prong=False )
+s2 = MicroMC.make_model( R=0, phi=0, var=0.3, two_prong=False )
 
-angles_plot = angles_bkg[0]
-pt_plot     = pt_bkg[0]
+pt_plot, angles_plot, pop = MicroMC.mix_model( s1, s2, 1 )
 
-Nsteps = 100
+angles_plot = torch.Tensor(angles_plot[0])
+pt_plot     = torch.Tensor(pt_plot[0])
+pop         = torch.Tensor(pop[0])
+
+fname  = "linear"
+Nsteps = 200
 delay  = 50/5
 
 plot_directory_ = os.path.join( user.plot_directory, 'SMEFTNet', "scatter")
@@ -73,14 +70,17 @@ width = 500
 c1 = ROOT.TCanvas("c", "c", 200, 10, 2*width, width)
 c1.Divide(2,1)
 gray_circles = []
-for i in range(0, Nsteps):
+for i in range(1, Nsteps+1):
     
-    angles_real = torch.view_as_real(torch.view_as_complex(angles_plot)*np.exp(2*math.pi*1j*(i/Nsteps)))
-    
+    shift = 2*math.sin(2*math.pi*i/Nsteps)
+    angles_real = torch.zeros_like( angles_plot )
+    angles_real[pop==1]  = torch.column_stack( ( angles_plot[pop==1][:,0] + shift, angles_plot[pop==1][:,1]))
+    angles_real[pop==-1] = torch.column_stack( ( angles_plot[pop==-1][:,0] - shift, angles_plot[pop==-1][:,1]))
+
     mask        = angles_real.abs().sum(dim=-1)!=0
     angles_real_ = angles_real[mask]
 
-    x_max = 1.2*torch.max(torch.abs(angles_plot)).item() 
+    x_max = 2.4*torch.max(torch.abs(angles_plot)).item() 
     pt_log = np.log(array.array('d', pt_plot[mask]))
     radii  = x_max/50.*(0.5 + (pt_log - np.min(pt_log)) / np.max(pt_log- np.min(pt_log)))
     colors = (254*(pt_log - np.min(pt_log)) / np.max(pt_log- np.min(pt_log))).astype(int) 
@@ -165,7 +165,7 @@ for i in range(0, Nsteps):
     l1.Draw()
     l2.Draw()
 
-    c1.Print(os.path.join( plot_directory_, 'test_%s.png'%(str(i).zfill(3))) )
+    c1.Print(os.path.join( plot_directory_, fname+'_%s.png'%(str(i).zfill(3))) )
 
     h2.Reset()
     h3.Reset()
@@ -173,4 +173,4 @@ for i in range(0, Nsteps):
 
 helpers.copyIndexPHP( plot_directory_ )
 syncer.sync()
-syncer.makeRemoteGif(plot_directory_, pattern="test_*.png", name="test", delay=delay)
+syncer.makeRemoteGif(plot_directory_, pattern=fname+"_*.png", name=fname, delay=delay)

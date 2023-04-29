@@ -6,15 +6,15 @@ import ROOT
 
 def make_model( R = 1, phi = 0, var = 0.3, two_prong = True):
     if two_prong:
-        mix = D.Categorical(torch.ones(2,))
+        mix  = D.Categorical(torch.ones(2,))
         comp = D.Independent(D.Normal(
                     torch.Tensor(((R*cos(phi), R*sin(phi)), (-R*cos(phi), -R*sin(phi)))),
                     torch.Tensor(((var,var),(var,var)))), 1)
         return D.MixtureSameFamily(mix, comp)
     else:
-        comp = D.Normal(
-                    torch.Tensor((R*cos(phi), R*sin(phi))),
-                    torch.Tensor((var,var)) )
+        comp = D.Independent(D.Normal(
+                    torch.Tensor(((R*cos(phi), R*sin(phi)))),
+                    torch.Tensor(((var,var)))),1)
         return comp 
 
 def make_TH2(R = 1, phi = 0, var = 0.3, two_prong = True):
@@ -29,6 +29,7 @@ pt_jet = 100
 smearing=0.1
 
 def sample( model, Nevents ):
+
     Nparticles = D.Poisson(mean_Nparticles)
     angles  = torch.Tensor([torch.nn.functional.pad( model.sample((Nparticles.sample().int(),)), (0,0,0,Nparticle_pad))[:Nparticle_pad].numpy() for _ in range( Nevents )])
     mask    = angles.abs().sum(dim=-1)!=0
@@ -43,9 +44,12 @@ def mix_model( model1, model2, Nevents ):
     #print ( [torch.cat( (torch.ones(npart1), -1*torch.ones(npart2)), dim=0) for npart1, npart2 in npart] )
     pop     = torch.Tensor([ torch.cat( (torch.ones(npart1), -1*torch.ones(npart2), torch.zeros(max(0,Nparticle_pad-npart1-npart2))), dim=0)[:Nparticle_pad].numpy()  for npart1, npart2 in npart])
     angles  = torch.Tensor([torch.nn.functional.pad( torch.cat( (model1.sample((npart1,)), model2.sample((npart2,))), dim=0), (0,0,0,Nparticle_pad))[:Nparticle_pad].numpy() for npart1, npart2 in npart])
+    #print ("", angles.shape, model1.log_prob(angles))
     pt      = torch.exp(model1.log_prob(angles)) + torch.exp(model2.log_prob(angles))
     mask    = angles.abs().sum(dim=-1)!=0
+    #print ("mask", mask.shape, mask)
     pt      = pt_jet*torch.distributions.log_normal.LogNormal(0,.2).sample((Nevents,Nparticle_pad))*(pt*mask)/(pt*mask).sum(dim=-1).reshape(-1,1)
+
     return pt.numpy(), angles.numpy(), pop
 
 def getModels( models ):
