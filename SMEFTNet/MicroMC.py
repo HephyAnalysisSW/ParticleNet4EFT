@@ -83,3 +83,4 @@ def getEvents( signal, background, nTraining, test_size=None, train_size=None, r
         torch.Tensor(np.concatenate( (label_sig, label_bkg) )).to(device),
         test_size=test_size, train_size=train_size
     )
+

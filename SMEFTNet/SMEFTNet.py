@@ -119,9 +119,12 @@ class EIRCGNN(EdgeConv):
 norm_kwargs={}#'track_running_stats':False}
 
 class SMEFTNet(torch.nn.Module):
-    def __init__(self, num_classes=1, conv_params=( (0.0, [10, 10]), (0.0, [10, 10]) ), dRN=0.4, readout_params=(0.0, [32, 32]), learn_from_phi=False):
+    def __init__(self, num_classes=1, conv_params=( (0.0, [10, 10]), (0.0, [10, 10]) ), dRN=0.4, readout_params=(0.0, [32, 32]), learn_from_phi=False, regression=False):
         super().__init__()
 
+        self.learn_from_phi = learn_from_phi
+        self.regression = regression
+        self.num_classes= num_classes
         self.EC = torch.nn.ModuleList()
 
         for l, (dropout, hidden_layers) in enumerate(conv_params):
@@ -135,13 +138,13 @@ class SMEFTNet(torch.nn.Module):
         # output features + cos/sin gamma
         EC_out_chn = hidden_layers[-1]
         # whether we're going to feed cos/sin gamma
-        self.learn_from_phi = learn_from_phi
         if self.learn_from_phi:
             EC_out_chn += 2
 
         self.mlp = MLP( [EC_out_chn]+readout_params[1]+[num_classes], dropout=readout_params[0], act="LeakyRelu",norm_kwargs=norm_kwargs)
 
-        self.out = torch.nn.Sigmoid()
+        if not self.regression:
+            self.out = torch.nn.Sigmoid()
 
     @classmethod
     def load(cls, directory, epoch=None):
@@ -151,7 +154,8 @@ class SMEFTNet(torch.nn.Module):
             load_file_name = 'epoch-%d_state.pt'%epoch
         load_file_name = os.path.join( directory, load_file_name)
         cfg_dict = pickle.load(open(load_file_name.replace('_state.pt', '_cfg_dict.pkl'),'rb'))
-        model = cls( num_classes=1, conv_params=eval(cfg_dict['conv_params']), dRN=cfg_dict['dRN'], readout_params=eval(cfg_dict['readout_params']), learn_from_phi=cfg_dict['learn_from_phi'])
+        model = cls( num_classes=cfg_dict['num_classes'] if "num_classes" in cfg_dict else 1, 
+                     conv_params=eval(cfg_dict['conv_params']), dRN=cfg_dict['dRN'], readout_params=eval(cfg_dict['readout_params']), learn_from_phi=cfg_dict['learn_from_phi'])
         model_state = torch.load(load_file_name, map_location=device)
         model.load_state_dict(model_state)
         model.cfg_dict = cfg_dict
@@ -183,16 +187,25 @@ class SMEFTNet(torch.nn.Module):
         if return_EIRCGNN_output:
             if self.learn_from_phi == True:
                 return x 
-        # THIS is the default case -> we pass the pooled message through the output MLP & the 'out' layer
+        # THIS is the default case -> we pass the pooled message through the output MLP & the 'out' layer (except for regression where we don't do that)
         else:
-            if self.learn_from_phi == True: 
-                return torch.cat( (self.out(self.mlp( x )), x[:, -2:]), dim=1)
+            if self.learn_from_phi == True:
+                if self.regression: 
+                    return torch.cat( (self.mlp( x ), x[:, -2:]), dim=1)
+                else:
+                    return torch.cat( (self.out(self.mlp( x )), x[:, -2:]), dim=1)
             else:
-                return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
+                if self.regression: 
+                    return torch.cat( (self.mlp( x[:, :-2] ), x[:, -2:]), dim=1)
+                else:
+                    return torch.cat( (self.out(self.mlp( x[:, :-2] )), x[:, -2:]), dim=1)
 
     # intercept EIRCGNN output
     def EIRCGNN_output( self, pt, angles, message_logging=False):
         return self.forward( pt=pt, angles=angles, message_logging=message_logging, return_EIRCGNN_output=True)
+
+    
+         
 
 if __name__=="__main__":
 

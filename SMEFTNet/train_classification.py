@@ -59,7 +59,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=1./20)
 criterion = torch.nn.BCELoss()
 
-################ Loading previous state ###########################
+#################### Loading previous state #####################
 model.cfg_dict = {'best_loss_test':float('inf')}
 model.cfg_dict.update( {key:getattr(args, key) for key in ['prefix', 'learning_rate', 'learn_from_phi', 'epochs', 'nTraining', 'conv_params', 'readout_params', 'dRN']} )
 
@@ -85,11 +85,14 @@ if not args.overwrite:
         model.cfg_dict = pickle.load( open( load_file_name.replace('_state.pt', '_cfg_dict.pkl'), 'rb') )
         # FIXME should add warning if keys change
 
-####################  Training loop ##########################
+########################  Training loop ##########################
 
-pt_train, pt_test, angles_train, angles_test, labels_train, labels_test = MicroMC.getEvents(*MicroMC.getModels(args.data_model), args.nTraining)
 for epoch in range(epoch_min, args.epochs):
 
+    # new data every 10 epochs
+    if epoch%10==0 or epoch==epoch_min:
+        pt_train, pt_test, angles_train, angles_test, labels_train, labels_test = MicroMC.getEvents(*MicroMC.getModels(args.data_model), args.nTraining)
+        print ("New training and test dataset.")
     optimizer.zero_grad()
 
     out  = model(pt=pt_train, angles=angles_train)
@@ -102,6 +105,11 @@ for epoch in range(epoch_min, args.epochs):
     with torch.no_grad():
         out_test  = model(pt=pt_test, angles=angles_test)
         loss_test = criterion(out_test[:,0], labels_test )
+        if not "test_losses" in model.cfg_dict:
+            model.cfg_dict["train_losses"] = []
+            model.cfg_dict["test_losses"] = []
+        model.cfg_dict["train_losses"].append( loss.item() )
+        model.cfg_dict["test_losses"].append(  loss_test.item() )
 
     print(f'Epoch {epoch:03d} with N={n_samples:03d}, Loss(train): {loss:.4f} Loss(test): {loss_test:.4f}')
 
