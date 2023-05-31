@@ -15,12 +15,14 @@ import yaml
 import itertools
 
 import matplotlib.pyplot as plt
+# plt.rcParams['text.usetex'] = True
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import colors
 from matplotlib.backends.backend_pdf import PdfPages
 
 
 BASE_DIR = pathlib.Path("/users/oskar.rothbacher/CMS/ParticleNet4EFT").resolve()
-USER = os.getlogin()
+USER = "oskar.rothbacher" # os.getlogin()
 
 # DEFAULT_CONFIG = BASE_DIR / "data" / "for_plots" / "wilson_plot.yaml"
 
@@ -52,6 +54,11 @@ parser.add_argument(
     default="",
 )
 parser.add_argument(
+    "--out-file",
+    type=str,
+    default=None,
+)
+parser.add_argument(
     "--model-name",
     type=str,
     required=True,
@@ -60,6 +67,11 @@ parser.add_argument(
     "--epoch",
     type=str,
     default="last",
+)
+parser.add_argument(
+    "--coeffs",
+    type=str,
+    default="ctWRe_coeffs",
 )
 # parser.add_argument(
 #     "--interactive",
@@ -136,6 +148,7 @@ def main(args):
                 ak0.load(args.model_name / "predict_output" / "best_epoch_prediction.awkd")   # 'best' epoch
             )
         else:
+            print(args.model_name / "predict_output" / f"prediction_at_epoch_{args.epoch}.awkd")
             pred_out = dict(
                 ak0.load(args.model_name / "predict_output" / f"prediction_at_epoch_{args.epoch}.awkd")   #  epoch
             )
@@ -146,7 +159,7 @@ def main(args):
 
     lin = pred_out["scores"][:, 0]
     quad = pred_out["scores"][:, 1]
-    weights = pred_out["ctWRe_coeffs"]
+    weights = pred_out[args.coeffs]
 
     # with PdfPages(args.output / "nn_LLR.pdf") as pdf:
 
@@ -173,24 +186,29 @@ def main(args):
         norm_to_nevents=1000
     )
 
-    # interval = np.array([-0.5,0.5])
-
-    # hists
-    print("hists")
+    print("estimator distribution")
+    # estimator distribution
+    title = "Distribution of estimator"
     plot_nn_hist(
         ax=ax_dict["A"],
         lin=lin,
         quad=quad,
         weights=weights,
         param_values=interval,
+        bins=20,
+        plot_range=(-0.5,0),
         use_weighted_quantiles=True,
+        use_bin_edges=True,
+        equal_area=True,
         ratio_hist=False,
         norm_to_nevents=1000,
-        title="lin+0.5*quad hist",
+        title=title,
     )
 
-    print("ratio hists")
-    # ratio hists
+    # interval = np.array([-0.5,0.5])
+
+    # hists
+    print("hists")
     plot_nn_hist(
         ax=ax_dict["B"],
         lin=lin,
@@ -200,7 +218,7 @@ def main(args):
         use_weighted_quantiles=True,
         ratio_hist=True,
         norm_to_nevents=1000,
-        title="lin+0.5*quad ratio hist"
+        title="Ratio histograms (arbitrary units)",
     )
 
     # pred target for lin
@@ -222,8 +240,13 @@ def main(args):
         bins=100,
         log=True,
     )
+
     pathlib.Path.mkdir(args.output / f"{str(args.model_name).split('/')[-1]}", parents=True, exist_ok=True)
-    fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}" / f"epoch_{args.epoch}_LLR.png")
+
+    if args.out_file:
+        fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}" / f"{args.out_file}.png")
+    else:
+        fig.savefig(args.output / f"{str(args.model_name).split('/')[-1]}" / f"epoch_{args.epoch}_LLR.png")
 
     print(args.output)
     # all the plots go inside this context manager
@@ -495,6 +518,7 @@ def plot_LLR_full(
     lin: np.ndarray,
     quad: np.ndarray,
     weights: np.ndarray,
+    coefficient: str = r"$C_{tW}(\operatorname{Re})$",
     param_range: tuple[float, float] = (-1.0, 1.0),
     n_plot_grid: int = 100,
     bins: int = 20,
@@ -529,16 +553,17 @@ def plot_LLR_full(
     LLR_plot -= LLR_min
     LLR_plot_true -= LLR_min
 
-    ax.plot(plot_grid, LLR_plot, label="network")
-    ax.plot(plot_grid, LLR_plot_true, label="true_weight_coeffs")
+    ax.plot(plot_grid, LLR_plot, label="Estimator")
+    ax.plot(plot_grid, LLR_plot_true, label="From target weight coefficients")
 
-    ax.set_xlabel("ctWRe", fontsize="x-small")
+    ax.set_xlabel(coefficient, fontsize="x-small")
     ax.set_ylabel("LLR", fontsize="x-small")
 
     ax.plot(plot_grid, np.full_like(plot_grid, 1), "k:")
-    ax.plot(plot_grid[idcs_intervall], LLR_plot[idcs_intervall], "or")
+    ci = plot_grid[idcs_intervall].flatten()
+    ax.plot(plot_grid[idcs_intervall], LLR_plot[idcs_intervall], "or", label=f"$CI = [{ci[0]:.4}, {ci[1]:.4}]$")
 
-    ax.set_title("LLR plot", fontsize="small")
+    ax.set_title("Log likelihood ratio, confidence intervall at $\Delta LLR = 1$", fontsize="small")
     ax.legend(fontsize="x-small")
 
     ax.tick_params("both", labelsize="xx-small")
@@ -590,10 +615,14 @@ def plot_nn_hist(
     weights: np.ndarray,
     param_values: np.ndarray,
     bins: int = 20,
+    plot_range: tuple[float,float] | None = None,
     use_weighted_quantiles: bool = True,
+    use_bin_edges: bool = False,
+    equal_area: bool = True,
     ratio_hist: bool = False,
     norm_to_nevents: int = 1000,
-    title: str = None
+    title: str = None,
+    coefficient: str = r"$C_{tW}(\operatorname{Re})$"
 ):
     w_SM = weights[:, 0]
 
@@ -609,10 +638,20 @@ def plot_nn_hist(
     n_hat_0, bin_edges = np.histogram(lin, bins=bin_edges, weights=w_SM)
     n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
 
-    if ratio_hist:
-        ax.stairs(np.ones_like(n_hat_0))
+    
+
+    if not use_bin_edges:
+        bin_edges = None
     else:
-        ax.stairs(n_hat_0, label="sm")
+        if equal_area:
+            bin_distances = bin_edges[1:] - bin_edges[:-1]
+            n_hat_0 = n_hat_0 / bin_distances
+    #     ax.plot(bin_edges, np.zeros_like(bin_edges), 'ro')
+
+    if ratio_hist:
+        ax.stairs(np.ones_like(n_hat_0), bin_edges)
+    else:
+        ax.stairs(n_hat_0, bin_edges, label="$SM$")
 
     for value in param_values:
         estimator = lin + 0.5 * value * quad
@@ -636,17 +675,28 @@ def plot_nn_hist(
         n_hat_0 = normalize_hist(n_hat_0, norm_to_nevents)
         n_hat = normalize_hist(n_hat, norm_to_nevents)
 
+        if not use_bin_edges:
+            bin_edges = None
+        else:
+            if equal_area:
+                bin_distances = bin_edges[1:] - bin_edges[:-1]
+                n_hat = n_hat / bin_distances
+        #     ax.plot(bin_edges, np.zeros_like(bin_edges), 'ro')
+
         if ratio_hist:
             ratio = n_hat_0 / n_hat
-            ax.stairs(ratio, label=f"ctWRe={value:.2}")
+            ax.stairs(ratio, bin_edges, label=f"{coefficient} = {value:.4}")
             ax.set_ylim(0.7,1.3)
         else:
-            ax.stairs(n_hat, label=f"ctWRe={value:.2}")
+            ax.stairs(n_hat, bin_edges, label=f"{coefficient} = {value:.4}")
 
     ax.legend(loc="lower right", fontsize="x-small")
     ax.tick_params("both", labelsize="xx-small")
     ax.set_title(title, fontsize="small")
-    ax.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
+    if not use_bin_edges:
+        ax.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
+    if plot_range:
+        ax.set_xlim(plot_range)
 
 
 
@@ -659,7 +709,7 @@ def pred_target_hist2d(
     range: list[list[float]] = [[-0.5, 0.5], [-0.5, 0.5]],
     log: bool = True,
 ):
-    ax.hist2d(
+    h = ax.hist2d(
         target,
         pred,
         bins=bins,
@@ -667,13 +717,22 @@ def pred_target_hist2d(
         norm=colors.SymLogNorm(1) if log else None,
     )
     ax.plot(*range)
-    #ax.colorbar() need to figure out how to use with Axes style
     ax.set_title(label, fontsize="small")
     ax.set_xlabel("target", fontsize="x-small")
     ax.set_ylabel("prediction", fontsize="x-small")
     ax.tick_params("both", labelsize="xx-small")
     ax.tick_params("y", labelrotation=90)
 
+    # create an inset axis for the colorbar
+    axins = inset_axes(
+        ax,
+        width="5%",
+        height="50%",
+        loc="upper left",
+    )
+
+    # colorbar need the figure instance
+    ax.get_figure().colorbar(h[3], cax=axins)
 
 
 def normalize_hist(hist: np.ndarray, norm_to_nevents: int = 1000) -> None:
