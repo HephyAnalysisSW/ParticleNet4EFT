@@ -527,10 +527,10 @@ def train_weighted_regression(model, loss_func, opt, scheduler, train_loader, de
             tq.set_postfix(pf_dict)
 
             if tb_helper:
-                tb_helper.write_scalars(
-                    [ ("Loss/train", loss, tb_helper.batch_train_count + num_batches) ] + 
-                    [ ("MSE(%i)/train"%n_class, sqr_err[n_class] / num_examples, tb_helper.batch_train_count + num_batches) for n_class in range(model.num_classes)]
-                    )
+                # tb_helper.write_scalars(
+                #     [ ("Loss/train", loss, tb_helper.batch_train_count + num_batches) ] + 
+                #     [ ("MSE(%i)/train"%n_class, sqr_err[n_class] / num_examples, tb_helper.batch_train_count + num_batches) for n_class in range(model.num_classes)]
+                #     )
                 if tb_helper.custom_fn:
                     with torch.no_grad():
                         tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=num_batches, mode='train')
@@ -635,10 +635,10 @@ def evaluate_weighted_regression(model, test_loader, dev, epoch, for_training=Tr
 
     if tb_helper:
         tb_mode = 'eval' if for_training else 'test'
-        tb_helper.write_scalars(
-                [ ("Loss/%s (epoch)" % tb_mode, total_loss / count, epoch)] +
-                [ ("MSE(%i)/train"%n_class, sum_sqr_err[n_class] / count, epoch) for n_class in range(model.num_classes)] 
-            )
+        # tb_helper.write_scalars(
+        #         [ ("Loss/%s (epoch)" % tb_mode, total_loss / count, epoch)] +
+        #         [ ("MSE(%i)/train"%n_class, sum_sqr_err[n_class] / count, epoch) for n_class in range(model.num_classes)] 
+        #     )
         if tb_helper.custom_fn:
             with torch.no_grad():
                 tb_helper.custom_fn(model_output=model_output, model=model, epoch=epoch, i_batch=-1, mode=tb_mode)
