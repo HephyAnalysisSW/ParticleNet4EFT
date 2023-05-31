@@ -135,7 +135,7 @@ class FusionBlock(nn.Module):
 
 
 class DgnnBlock(nn.Module):
-    def __init__(self, input_dims, conv_params, use_fts_bn, use_fusion, for_inference) -> None:
+    def __init__(self, input_dims, conv_params, use_fts_bn, use_fusion, for_inference=False) -> None:
         super().__init__()
         # fts batchnorm
         self.use_fts_bn = use_fts_bn
@@ -370,19 +370,31 @@ class ParticleNet(nn.Module):
         return output
 
 
-class FeatureConv(nn.Module):
+class FeatureConv(nn.Sequential):
 
     def __init__(self, in_chn, out_chn, **kwargs):
-        super(FeatureConv, self).__init__(**kwargs)
-        self.conv = nn.Sequential(
+        mod_list = [
             nn.BatchNorm1d(in_chn),
             nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
             nn.BatchNorm1d(out_chn),
             nn.ReLU()
-            )
+        ]
+        super().__init__(*mod_list, **kwargs)
 
-    def forward(self, x):
-        return self.conv(x)
+    
+# class FeatureConv(nn.Module):
+
+#     def __init__(self, in_chn, out_chn, **kwargs):
+#         super(FeatureConv, self).__init__(**kwargs)
+#         self.conv = nn.Sequential(
+#             nn.BatchNorm1d(in_chn),
+#             nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
+#             nn.BatchNorm1d(out_chn),
+#             nn.ReLU()
+#             )
+
+#     def forward(self, x):
+#         return self.conv(x)
 
 
 class ParticleNetTagger(nn.Module):
