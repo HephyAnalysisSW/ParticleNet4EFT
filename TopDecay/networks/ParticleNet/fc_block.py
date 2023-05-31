@@ -26,7 +26,7 @@ def get_model(data_config, **kwargs):
         out_chn = num_classes,
         use_bn=False,
         is_output_layer=True,
-        input_transform = nn.Flatten(start_dim=-2)
+        input_transform = (nn.Flatten(start_dim=-2), nn.BatchNorm1d(global_features_dims))
     )
 
     model_info = {
