@@ -10,9 +10,9 @@
 #SBATCH --time 08:00:00
 #SBATCH -D /users/oskar.rothbacher/CMS/ParticleNet4EFT/
 
+# 0 1 2 5 10 20 50 100 200 399 400 401 402 405 410 420 430 440 448
 
-
-for epoch in 0 1 2 5 10 20 50 100 200 399 400 401 402 405 410 420 430 440 448 #450 459
+for epoch in  460 470 480 490 499
 do
 
 python train.py \

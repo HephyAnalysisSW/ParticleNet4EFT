@@ -1,0 +1,103 @@
+sbatch_args:
+  --nodes: '1'
+  --partition: g
+  --gres: gpu:1
+  --cpus-per-task: '6'
+  --mem-per-gpu: 40G
+  --qos: medium
+  --time: 1-00:00:00
+  -D: /users/oskar.rothbacher/CMS/ParticleNet4EFT/
+
+
+# these are the same for all scripts
+train_options_const:
+  --network-config:
+    - 'TopDecay/networks/ParticleNet/PNGLobal_TopDecay_config.py'
+  --data-config:
+    - 'TopDecay/data/eflow_particles_delphes_globals_ctWRe_weighted.yaml'
+  --data-train:
+    - >-
+        /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v10/TT01j_HT800_ext_comb/TT01j_HT800_ext_comb_[1-6]??.root
+  --data-test:
+    - /scratch-cbe/users/robert.schoefbeck/HadronicSMEFT/postprocessed/gen/v10/TT01j_HT800_ext_comb/TT01j_HT800_ext_comb_7??.root
+  --regression-mode:
+    - ''
+  --optimizer:
+    - ranger
+  --start-lr:
+    - 1e-4
+  --lr-scheduler:
+    - none
+  --weighting:
+    - ''
+  --gpus:
+    - 0
+  --fetch-by-files:
+    - ''
+  --fetch-step:
+    - 10
+  --num-workers:
+    - 3
+  --batch-size:
+    - 100
+  --num-epochs:
+    - 100
+  
+
+# these vary by script   
+train_options_var:
+
+  # any occurence of 'auto' will be replaced by network options
+  --model-prefix:
+    - models/direct_train/large/ctWRe_v01/model    
+    - models/direct_train/large/ctWIm_v01/model    
+    - models/direct_train/medium/ctWRe_v01/model    
+    - models/direct_train/medium/ctWIm_v01/model    
+    - models/direct_train/small/ctWRe_v01/model    
+    - models/direct_train/small/ctWIm_v01/model    
+
+  --tensorboard:
+    - runs/direct_train/large/ctWRe_v01/model    
+    - runs/direct_train/large/ctWIm_v01/model    
+    - runs/direct_train/medium/ctWRe_v01/model    
+    - runs/direct_train/medium/ctWIm_v01/model    
+    - runs/direct_train/small/ctWRe_v01/model    
+    - runs/direct_train/small/ctWIm_v01/model    
+
+network_options:
+
+  conv_params:
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+    - '[(16, (64, 64, 64)), (16, (128, 128, 128)), (16, (256, 256, 256))]'
+
+  pnet_fc_params: 
+    - '[(128, 0.0)]'
+    - '[(128, 0.0)]'
+    - '[(128, 0.0)]'
+    - '[(128, 0.0)]'
+    - '[(128, 0.0)]'
+    - '[(128, 0.0)]'
+
+  globals_fc_params:
+    - '[(256, 0.0), (256, 0.0)]'
+    - '[(256, 0.0), (256, 0.0)]'
+    - '[(256, 0.0), (256, 0.0)]'
+    - '[(256, 0.0), (256, 0.0)]'
+    - '[(256, 0.0), (256, 0.0)]'
+    - '[(256, 0.0), (256, 0.0)]'
+
+  joined_fc_params:
+    - '[(256, 0.0), (128, 0.0)]'
+    - '[(256, 0.0), (128, 0.0)]'
+    - '[(256, 0.0), (128, 0.0)]'
+    - '[(256, 0.0), (128, 0.0)]'
+    - '[(256, 0.0), (128, 0.0)]'
+    - '[(256, 0.0), (128, 0.0)]'
+
+# script names (eg when generating scripts for continued training with the same model prefix)
+# for now scripts will be submitted in alphabetical order, so choose names appropriatley if needed
+# script_name:
